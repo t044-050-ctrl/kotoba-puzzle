@@ -1596,7 +1596,7 @@ function showRowHint(rowIndex, btn) {
   if (usedHintsInStage[rowIndex]) return;
   usedHintsInStage[rowIndex] = true;
   btn.classList.add('used');
-  btn.innerText = 'ヒント☑';
+  btn.innerText = 'ヒント✓';
   btn.disabled = true;
 
   const targetIdiom = currentIdioms[rowIndex];
