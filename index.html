@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ことばパズル１ねん</title>
+ <meta property="og:title" content="ことばパズル１ねん">
+    <meta property="og:description" content="【１年国語】文字カード（平仮名/片仮名）を組み合わせて、意味に合う言葉を作るゲームです。">
+    <meta property="og:type" content="website">
 <style>
   * { 
     box-sizing: border-box; 
@@ -569,7 +572,7 @@
     <div id="workspace">
       <div id="idiom-list"></div>
       <div id="card-pool-container">
-        <div class="pool-title">もじカード（えらんでね）</div>
+        <div class="pool-title">もじカード（ゆびでなぞってうごかそう）</div>
         <div id="card-pool" ondragover="allowDrop(event)" ondrop="dropToPool(event)"></div>
       </div>
     </div>
@@ -1926,7 +1929,7 @@ function checkAllCompleted() {
     modal.className = 'modal-overlay';
     modal.innerHTML = `
       <div class="stage-clear-banner">
-        <h2>🎉 5問ぜんぶクリア！</h2>
+        <h2>🎉 5もん ぜんぶクリア！</h2>
         <p style="margin-bottom: 4px;">⭐ クリア 50pt ＋ のこり${remainingSec}びょう (${remainingSec}pt) ＝ <strong>＋${stageGainedPoints}pt</strong> ゲット！</p>
       </div>
     `;
@@ -2193,7 +2196,7 @@ function startSpecialStage() {
     modal.innerHTML = `
       <div class="special-stage-container">
         <div class="special-header">
-          <div class="special-title">⭐ とくべつ ことばさがし ⭐</div>
+          <div class="special-title">⭐ かくれんぼ ことばさがし ⭐</div>
           <div>テーマ：【 ${themeObj.theme} 】</div>
         </div>
         <p style="font-size:14px;color:#713f12;margin:0;text-align:center;">ことばを見つけたら、はじめの文字から順番にタップしよう！</p>
@@ -2270,7 +2273,7 @@ function startSpecialStage() {
     let currentIndex = 0;
     modal.innerHTML = `
       <div class="special-stage-container">
-        <div class="special-header"><div class="special-title">⭐ とくべつ もじさがし ⭐</div></div>
+        <div class="special-header"><div class="special-title">⭐ じゅんばん もじさがし ⭐</div></div>
         <p style="font-size:15px;color:#713f12;font-weight:900;margin:0;text-align:center;">3つの行、15文字をじゅんばんにタップしよう！</p>
         <div id="kana-target" style="font-size:22px;line-height:1.65;letter-spacing:3px;font-weight:900;color:#0369a1;background:#fff;border:2px solid #7dd3fc;border-radius:12px;padding:8px 12px;text-align:center;"></div>
         <div class="gojyuon-container" id="gojyuon-box"></div>
@@ -2364,7 +2367,7 @@ function showStartModal() {
     <div class="start-hero-card">
       <h1 class="start-hero-title">ことばパズル１ねん</h1>
       <p style="font-size: 15px; margin-bottom: 20px; line-height: 1.6;">
-        ひらがな と カタカナ の カードを えらんで<br>
+        ひらがな と かたかな の カードを えらんで<br>
         いみにあう ことばを かんせいさせよう！<br>
         50マスの ゴールを めざそう！
       </p>
