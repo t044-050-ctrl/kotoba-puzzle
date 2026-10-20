@@ -1451,7 +1451,7 @@ function startStage() {
   isKatakanaMode = (currentStage % 2 === 0);
   document.getElementById('mode-display').innerText = isKatakanaMode ? "【カタカナ】" : "【ひらがな】";
   document.getElementById('timer-display').innerText = `⏱ ${formatTime(timer)}`;
-  document.getElementById('stage-display').innerText = `🚩 すてーじ ${currentStage}`;
+  document.getElementById('stage-display').innerText = `🚩 ステージ ${currentStage}`;
 
   const db = isKatakanaMode ? KATAKANA_DATABASE : HIRAGANA_DATABASE;
   // ひらがな・カタカナ別に候補をシャッフルした袋を用意し、一巡するまで同じ言葉を出さない。
@@ -1482,7 +1482,7 @@ function startStage() {
   renderProblemRows();
   renderCards();
 
-  triggerStageZoomIn(`すてーじ ${currentStage}`, () => {
+  triggerStageZoomIn(`ステージ ${currentStage}`, () => {
     timerInterval = setInterval(() => {
       timer--;
       document.getElementById('timer-display').innerText = `⏱ ${formatTime(timer)}`;
