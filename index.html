@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ことばパズル１ねん</title>
- <meta property="og:title" content="ことばパズル１ねん">
-    <meta property="og:description" content="【１年国語】文字カード（ひらがな/かたかな）を組み合わせて、意味に合う言葉をつくるゲームです。">
-    <meta property="og:type" content="website">
 <style>
   * { 
     box-sizing: border-box; 
@@ -1361,12 +1358,16 @@ let currentPosition = 0;
 let currentStage = 1;
 let totalPoints = 0;
 let nextSpecialStageMilestone = 500;
+let goalSequenceActive = false; // 完走演出・ゴール画面中は特別ボーナスを待機させる
 let timer = 180;
 let timerInterval = null;
 let soundEnabled = true;
 
 let isKatakanaMode = false;
 let currentIdioms = [];
+// ひらがな・カタカナそれぞれ、候補の言葉が一巡するまで重複しない「出題袋」方式
+let hiraganaQuestionQueue = [];
+let katakanaQuestionQueue = [];
 let usedHintsInStage = [false, false, false, false, false];
 let selectedCard = null;
 let audioCtx = null;
@@ -1499,7 +1500,30 @@ function startStage() {
   document.getElementById('stage-display').innerText = `🚩 すてーじ ${currentStage}`;
 
   const db = isKatakanaMode ? KATAKANA_DATABASE : HIRAGANA_DATABASE;
-  currentIdioms = [...db].sort(() => Math.random() - 0.5).slice(0, 5);
+  // ひらがな・カタカナ別に候補をシャッフルした袋を用意し、一巡するまで同じ言葉を出さない。
+  // 残りが5問未満なら、袋の残りを使い切ってから新しい袋を作り、必要数を補う。
+  const getQueue = () => isKatakanaMode ? katakanaQuestionQueue : hiraganaQuestionQueue;
+  const setQueue = queue => {
+    if (isKatakanaMode) katakanaQuestionQueue = queue;
+    else hiraganaQuestionQueue = queue;
+  };
+  const shuffleQuestions = items => {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+  currentIdioms = [];
+  let queue = getQueue();
+  while (currentIdioms.length < 5) {
+    if (queue.length === 0) queue = shuffleQuestions(db);
+    const next = queue.shift();
+    // 同じステージ内でも同じ言葉を重ねない
+    if (!currentIdioms.some(item => item.word === next.word)) currentIdioms.push(next);
+  }
+  setQueue(queue);
 
   renderProblemRows();
   renderCards();
@@ -1920,6 +1944,9 @@ function checkAllCompleted() {
 }
 
 function checkSpecialStageOrNext() {
+  // 完走ボーナス／ゴール画面の流れが終わるまでは特別ボーナスを表示しない。
+  // 「つぎのステージへ」ボタンが押された後、ここに再度到達して表示する。
+  if (goalSequenceActive) return;
   if (totalPoints >= nextSpecialStageMilestone) {
     nextSpecialStageMilestone += 500;
     startSpecialStage();
@@ -1960,6 +1987,7 @@ async function advancePosition(count) {
 
   if (currentPosition >= 50) {
     currentPosition = 50;
+    goalSequenceActive = true;
     clearInterval(timerInterval);
     
     triggerGoalOrbitAnimation(() => {
@@ -2073,6 +2101,7 @@ function nextStageFromGoal(btn) {
   cleanupTouchState();
   btn.closest('.modal-overlay').remove();
   currentPosition = 0;
+  goalSequenceActive = false;
   updateTrackUI();
   checkSpecialStageOrNext();
 }
@@ -2085,22 +2114,41 @@ function startSpecialCountdown(modal, getProgress) {
   timerLabel.textContent = '⏱ のこり 1:00';
   container.insertBefore(timerLabel, container.querySelector('.special-grid-8x8, .gojyuon-container'));
   let remaining = 60;
+  modal._specialRemaining = remaining;
   modal._specialTimer = setInterval(() => {
     remaining--;
-    timerLabel.textContent = `⏱ のこり ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
+    modal._specialRemaining = Math.max(0, remaining);
+    timerLabel.textContent = `⏱ のこり ${Math.floor(Math.max(0, remaining) / 60)}:${String(Math.max(0, remaining) % 60).padStart(2, '0')}`;
     if (remaining <= 0) {
       clearInterval(modal._specialTimer);
-      const earned = Math.max(0, getProgress()) * 10;
+      const correctCount = Math.max(0, getProgress());
+      const earned = correctCount * 10; // 正解1つにつき10pt。時間切れ時は残り時間ptは0
       modal.remove();
       const result = document.createElement('div');
       result.className = 'modal-overlay';
-      result.innerHTML = `<div class="modal-card"><h2 class="win">⏱ タイムアップ！</h2><p>とくべつボーナスステージ おしまい！</p><p style="font-size:24px;font-weight:900;margin:16px 0;">⭐ ${earned} pt ゲット！</p><p>もとのゲームにもどります。</p></div>`;
+      result.innerHTML = `<div class="modal-card"><h2 class="win">⏱ タイムアップ！</h2><p>せいかい：${correctCount} こ × 10 pt</p><p>のこり時間：0 秒 × 1 pt</p><p style="font-size:24px;font-weight:900;margin:16px 0;">⭐ ${earned} pt ゲット！</p><p>もとのゲームにもどります。</p></div>`;
       document.getElementById('game-container').appendChild(result);
       rollUpPoints(totalPoints + earned, () => {
         setTimeout(() => { result.remove(); startStage(); }, 1200);
       });
     }
   }, 1000);
+}
+
+function finishSpecialStage(modal, correctCount) {
+  clearInterval(modal._specialTimer);
+  const remainingSeconds = Math.max(0, modal._specialRemaining || 0);
+  const earned = correctCount * 10 + remainingSeconds + 150; // 正解pt＋残り時間pt＋従来のクリアボーナス
+  playSE('milestone');
+  triggerConfetti();
+  modal.remove();
+  const result = document.createElement('div');
+  result.className = 'modal-overlay';
+  result.innerHTML = `<div class="modal-card"><h2 class="win">🎉 クリア！</h2><p>せいかい：${correctCount} こ × 10 pt</p><p>のこり時間：${remainingSeconds} 秒 × 1 pt</p><p>クリアボーナス：150 pt</p><p style="font-size:24px;font-weight:900;margin:16px 0;">⭐ ${earned} pt ゲット！</p></div>`;
+  document.getElementById('game-container').appendChild(result);
+  rollUpPoints(totalPoints + earned, () => {
+    setTimeout(() => { result.remove(); startStage(); }, 1200);
+  });
 }
 
 /* 特別ボーナスステージ */
@@ -2112,108 +2160,160 @@ function startSpecialStage() {
 
   if (isTypeWordSearch) {
     const themeObj = WORD_SEARCH_THEMES[Math.floor(Math.random() * WORD_SEARCH_THEMES.length)];
+    const words = themeObj.words.slice(0, 5);
+    const size = 8;
+    const cells = Array(size * size).fill(null);
+    const directions = [[0,1],[1,0],[1,1],[1,-1]]; // 横・縦・斜め
+    const placedWords = [];
+    const rand = n => Math.floor(Math.random() * n);
+
+    // 各単語を、横・縦・斜めのいずれかの一直線上に配置する。
+    words.sort((a,b) => b.length-a.length);
+    for (const word of words) {
+      const chars = [...word];
+      let placed = false;
+      for (let attempt = 0; attempt < 250 && !placed; attempt++) {
+        const [dr,dc] = directions[rand(directions.length)];
+        const r = rand(size), c = rand(size);
+        const er = r + dr * (chars.length - 1), ec = c + dc * (chars.length - 1);
+        if (er < 0 || er >= size || ec < 0 || ec >= size) continue;
+        const indexes = chars.map((_,i) => (r + dr*i)*size + (c + dc*i));
+        if (indexes.every((idx,i) => cells[idx] === null || cells[idx] === chars[i])) {
+          indexes.forEach((idx,i) => { cells[idx] = chars[i]; });
+          placedWords.push({word, indexes, found:false});
+          placed = true;
+        }
+      }
+      // 配置が難しい場合は単語数を減らす（文字をばらばらに配置することはしない）。
+    }
+
+    const dummyChars = [...'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん'];
+    for (let i=0;i<cells.length;i++) if (cells[i] === null) cells[i] = dummyChars[rand(dummyChars.length)];
+
     modal.innerHTML = `
       <div class="special-stage-container">
         <div class="special-header">
-          <div class="special-title">⭐ とくべつ もじさがし ⭐</div>
+          <div class="special-title">⭐ とくべつ ことばさがし ⭐</div>
           <div>テーマ：【 ${themeObj.theme} 】</div>
         </div>
-        <p style="font-size: 14px; color: #713f12;">パネルから ことばの もじを タップしよう！</p>
+        <p style="font-size:14px;color:#713f12;margin:0;text-align:center;">ことばを見つけたら、はじめの文字から順番にタップしよう！</p>
+        <div id="special-word-list" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;"></div>
         <div class="special-grid-8x8" id="special-grid"></div>
-      </div>
-    `;
+        <p style="font-size:12px;color:#713f12;margin:0;">ことばは 横・縦・ななめ の一直線にかくれているよ。</p>
+      </div>`;
     document.getElementById('game-container').appendChild(modal);
-
     const grid = modal.querySelector('#special-grid');
-    let targetChars = themeObj.words.join('').split('');
-    let dummyChars = ["あ","い","う","え","お","か","き","く","け","こ","さ","し","す","せ","そ"].slice(0, 64 - targetChars.length);
-    let allPanels = [...targetChars.map(c => ({ char: c, target: true })), ...dummyChars.map(c => ({ char: c, target: false }))].sort(() => Math.random() - 0.5);
+    const wordList = modal.querySelector('#special-word-list');
+    const wordBadges = new Map();
+    placedWords.forEach(item => {
+      const badge = document.createElement('div');
+      badge.textContent = item.word;
+      badge.style.cssText = 'background:#fff;border:2px solid #facc15;border-radius:8px;padding:4px 8px;font-weight:900;color:#713f12;';
+      wordList.appendChild(badge);
+      wordBadges.set(item.word, badge);
+    });
 
     let found = 0;
+    let selected = [];
+    const buttons = [];
     startSpecialCountdown(modal, () => found);
     playSE('fanfare');
 
-    allPanels.forEach(p => {
-      const btn = document.createElement('div');
+    cells.forEach((char, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'special-panel';
-      btn.innerText = p.char;
+      btn.textContent = char;
+      btn.dataset.index = String(idx);
+      btn.style.padding = '0';
       btn.onclick = () => {
-        if (btn.classList.contains('hit') || btn.classList.contains('miss')) return;
-        if (p.target) {
-          btn.classList.add('hit');
-          playSE('correct');
+        if (btn.classList.contains('hit')) return;
+        selected.push(idx);
+        btn.classList.add('hit');
+        const matches = placedWords.filter(item => !item.found && item.indexes.length === selected.length && item.indexes.every((v,i) => v === selected[i]));
+        if (matches.length) {
+          const item = matches[0];
+          item.found = true;
           found++;
-          if (found >= targetChars.length) {
-            clearInterval(modal._specialTimer);
-            playSE('milestone');
-            triggerConfetti();
-            const targetP = totalPoints + 150;
-            setTimeout(() => {
-              modal.remove();
-              rollUpPoints(targetP, () => {
-                startStage();
-              });
-            }, 1500);
-          }
+          const badge = wordBadges.get(item.word);
+          if (badge) { badge.style.background = '#bbf7d0'; badge.style.borderColor = '#16a34a'; badge.style.textDecoration = 'line-through'; }
+          playSE('correct');
+          selected = [];
+          if (found >= placedWords.length) finishSpecialStage(modal, found);
+          return;
+        }
+        const stillPossible = placedWords.some(item => !item.found && item.indexes.length > selected.length && item.indexes.slice(0,selected.length).every((v,i) => v === selected[i]));
+        if (stillPossible) {
+          playSE('correct');
         } else {
-          btn.classList.add('miss');
+          selected.forEach(selectedIdx => { if (buttons[selectedIdx]) buttons[selectedIdx].classList.remove('hit'); });
+          selected = [];
           playSE('wrong');
-          setTimeout(() => btn.classList.remove('miss'), 300);
         }
       };
+      buttons.push(btn);
       grid.appendChild(btn);
     });
   } else {
-    /* 50音順タップゲーム */
-    const targetSeq = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ"];
-    let shuffled = [...targetSeq].sort(() => Math.random() - 0.5);
+    /* もじさがし：ひらがな／カタカナの3つの行、合計15文字を順番に探す */
+    const hiraRows = ['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','らりるれろ'];
+    const kataRows = ['アイウエオ','カキクケコ','サシスセソ','タチツテト','ナニヌネノ','ハヒフヘホ','マミムメモ','ラリルレロ'];
+    const useKata = Math.random() < 0.5;
+    const availableRows = useKata ? kataRows : hiraRows;
+    const selectedRows = [...availableRows].sort(() => Math.random() - 0.5).slice(0, 3);
+    const targetSeq = [...selectedRows.join('')];
+    const allChars = [...availableRows.join('')];
+    const dummyPool = allChars.filter(ch => !targetSeq.includes(ch));
+    const cards = [...targetSeq, ...Array.from({length:9}, () => dummyPool[Math.floor(Math.random()*dummyPool.length)])];
+    // 15文字の正解パネルと9枚のダミーをランダムに並べる。
+    for (let i=cards.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]]; }
     let currentIndex = 0;
-
     modal.innerHTML = `
       <div class="special-stage-container">
-        <div class="special-header">
-          <div class="special-title">⭐ ５０おんじゅん タップ ⭐</div>
-        </div>
-        <p style="font-size: 16px; color: #713f12; font-weight: bold; margin-top: 6px;">「あ」から じゅんばんに タップしよう！</p>
+        <div class="special-header"><div class="special-title">⭐ とくべつ もじさがし ⭐</div></div>
+        <p style="font-size:15px;color:#713f12;font-weight:900;margin:0;text-align:center;">3つの行、15文字をじゅんばんにタップしよう！</p>
+        <div id="kana-target" style="font-size:22px;line-height:1.65;letter-spacing:3px;font-weight:900;color:#0369a1;background:#fff;border:2px solid #7dd3fc;border-radius:12px;padding:8px 12px;text-align:center;"></div>
         <div class="gojyuon-container" id="gojyuon-box"></div>
-      </div>
-    `;
+      </div>`;
     document.getElementById('game-container').appendChild(modal);
     const box = modal.querySelector('#gojyuon-box');
+    const target = modal.querySelector('#kana-target');
+    const renderTarget = () => {
+      target.innerHTML = '';
+      for (let r=0; r<3; r++) {
+        const line = document.createElement('div');
+        line.textContent = targetSeq.slice(r*5, r*5+5).map((ch,i) => (r*5+i) < currentIndex ? '✓' : ch).join(' ');
+        target.appendChild(line);
+      }
+    };
+    renderTarget();
     startSpecialCountdown(modal, () => currentIndex);
-
     playSE('fanfare');
-
-    shuffled.forEach(char => {
-      const card = document.createElement('div');
+    cards.forEach(char => {
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'gojyuon-card';
-      card.innerText = char;
+      card.textContent = char;
+      card.style.padding = '0';
       card.onclick = () => {
         if (card.classList.contains('cleared')) return;
         if (char === targetSeq[currentIndex]) {
           card.classList.add('cleared');
-          playSE('correct');
           currentIndex++;
-          if (currentIndex >= targetSeq.length) {
-            clearInterval(modal._specialTimer);
-            playSE('milestone');
-            triggerConfetti();
-            const targetP = totalPoints + 150;
-            setTimeout(() => {
-              modal.remove();
-              rollUpPoints(targetP, () => {
-                startStage();
-              });
-            }, 1500);
-          }
+          renderTarget();
+          playSE('correct');
+          if (currentIndex >= targetSeq.length) finishSpecialStage(modal, currentIndex);
         } else {
           playSE('wrong');
+          card.animate([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:180});
         }
       };
       box.appendChild(card);
     });
   }
 }
+
+function randIndex(max) { return Math.floor(Math.random() * max); }
 
 function handleTimeUp() {
   playSE('timeup');
@@ -2247,6 +2347,7 @@ function resetGame(btn) {
   currentStage = 1;
   totalPoints = 0;
   nextSpecialStageMilestone = 500;
+  goalSequenceActive = false;
   updateTrackUI();
   showStartModal();
 }
