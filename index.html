@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ことばパズル１ねん</title>
+<style>
+  * { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    user-select: none; 
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent; 
+  }
+  body {
+    background-color: #fefce8;
+    color: #1e293b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* 16:9 アスペクト比固定 メインコンテナ */
+  #game-container {
+    position: relative;
+    width: 96vw;
+    height: 54vw;
+    max-width: 1200px;
+    max-height: 675px;
+    background: #fef08a;
+    border-radius: 22px;
+    box-shadow: 0 12px 30px rgba(234, 179, 8, 0.3), 0 0 0 6px #fde047;
+    border: 4px solid #ffffff;
+    overflow: hidden;
+  }
+
+  #track-container {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .track-tile {
+    position: absolute;
+    width: clamp(26px, 3.2vw, 36px);
+    height: clamp(26px, 3.2vw, 36px);
+    background: #ffffff;
+    border: 2px solid #facc15;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: clamp(9px, 1.1vw, 12px);
+    font-weight: bold;
+    color: #854d0e;
+    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s, color 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transform: translate(-50%, -50%);
+  }
+
+  @keyframes tilePop {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.4); box-shadow: 0 0 18px rgba(74, 222, 128, 0.9); z-index: 30; }
+    100% { transform: translate(-50%, -50%) scale(1); }
+  }
+  .tile-pop { animation: tilePop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .track-tile.active-green {
+    background: #4ade80;
+    border-color: #16a34a;
+    color: #052e16;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.7);
+  }
+  .track-tile.active-yellow {
+    background: #fbbf24;
+    border-color: #d97706;
+    color: #78350f;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.9);
+  }
+  .track-tile.active-orbit {
+    background: #38bdf8 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 18px rgba(56, 189, 248, 1) !important;
+    transform: translate(-50%, -50%) scale(1.3) !important;
+    z-index: 25;
+  }
+  .track-tile.start-tile {
+    background: #38bdf8;
+    border-color: #0284c7;
+    color: #ffffff;
+    font-size: clamp(8px, 1vw, 10px);
+  }
+  .track-tile.goal-tile {
+    background: #f87171;
+    border-color: #dc2626;
+    color: #ffffff;
+    font-size: clamp(8px, 1vw, 10px);
+    animation: pulse-goal 1.5s infinite;
+  }
+
+  @keyframes pulse-goal {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.12); }
+  }
+
+  #main-content {
+    position: absolute;
+    top: clamp(38px, 8.2%, 60px);
+    left: clamp(38px, 8.2%, 60px);
+    right: clamp(38px, 8.2%, 60px);
+    bottom: clamp(38px, 8.2%, 60px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: clamp(6px, 1.2vw, 12px) clamp(10px, 1.8vw, 18px);
+    background: #ffffff;
+    border-radius: 18px;
+    border: 2px solid #fde047;
+    box-shadow: inset 0 0 10px rgba(250, 204, 21, 0.1);
+  }
+
+  #header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: clamp(4px, 1vw, 12px);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 0.8vw, 10px);
+    flex-shrink: 0;
+  }
+  .stat-box {
+    font-size: clamp(11px, 1.3vw, 15px);
+    font-weight: 800;
+    background: #fefce8;
+    border: 2px solid #fde047;
+    padding: 4px clamp(8px, 1.2vw, 14px);
+    border-radius: 20px;
+    color: #713f12;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  #stage-display { color: #d97706; }
+  #mode-display { color: #2563eb; background: #eff6ff; border-color: #bfdbfe; }
+  #points-display { color: #b45309; background: #fffbe6; border-color: #fde68a; }
+  #points-display.rolling {
+    transform: scale(1.1);
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #b45309;
+  }
+  #timer-display { color: #b45309; font-size: clamp(12px, 1.4vw, 16px); background: #fffbe6; border-color: #fde68a; }
+
+  .sound-btn {
+    cursor: pointer;
+    font-size: clamp(10px, 1.1vw, 13px);
+    font-weight: bold;
+    background: #ffffff;
+    border: 2px solid #fde047;
+    color: #713f12;
+    padding: 4px clamp(6px, 1vw, 12px);
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  #workspace {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    gap: clamp(8px, 1.5vw, 16px);
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  #idiom-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 1vw, 10px);
+    justify-content: center;
+    height: 100%;
+    min-width: 0;
+  }
+  .idiom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fefce8;
+    border: 2px solid #fef08a;
+    border-radius: 12px;
+    padding: clamp(4px, 0.8vw, 8px) clamp(6px, 1.2vw, 14px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  }
+  .meaning-text {
+    flex: 1;
+    color: #451a03;
+    font-size: clamp(12px, 1.3vw, 15px);
+    font-weight: 700;
+    padding-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .slots-container {
+    display: flex;
+    gap: clamp(4px, 0.8vw, 8px);
+    position: relative;
+    padding: 3px 0;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .drop-slot {
+    width: clamp(32px, 3.8vw, 46px);
+    height: clamp(32px, 3.8vw, 46px);
+    border: 2px dashed #facc15;
+    border-radius: 10px;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .drop-slot.filled {
+    border-style: solid;
+    border-color: #4ade80;
+    background: #f0fdf4;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
+  }
+
+  .hint-text {
+    position: absolute;
+    color: #fde047;
+    font-size: clamp(16px, 2vw, 22px);
+    font-weight: bold;
+    pointer-events: none;
+  }
+
+  .hint-btn {
+    width: clamp(28px, 3vw, 36px);
+    height: clamp(28px, 3vw, 36px);
+    border-radius: 10px;
+    background: #fef3c7;
+    border: 2px solid #fde68a;
+    color: #d97706;
+    font-size: clamp(9px, 1vw, 11px);
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .hint-btn.used {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+  }
+
+  #card-pool-container {
+    width: clamp(160px, 22vw, 240px);
+    height: 100%;
+    max-height: 380px;
+    background: #fefce8;
+    border: 2px dashed #facc15;
+    border-radius: 14px;
+    padding: clamp(6px, 1vw, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .pool-title {
+    font-size: clamp(10px, 1vw, 12px);
+    font-weight: 800;
+    color: #854d0e;
+    text-align: center;
+  }
+
+  #card-pool {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: clamp(4px, 0.8vw, 8px);
+    overflow-y: auto;
+  }
+
+  .pool-slot {
+    width: clamp(30px, 3.5vw, 42px);
+    height: clamp(30px, 3.5vw, 42px);
+    border: 1px dashed #fde047;
+    border-radius: 10px;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .kanji-card {
+    width: clamp(30px, 3.5vw, 42px);
+    height: clamp(30px, 3.5vw, 42px);
+    background: linear-gradient(135deg, #ffffff, #fef9c3);
+    color: #713f12;
+    font-size: clamp(16px, 2.2vw, 24px);
+    font-weight: 900;
+    border: 2px solid #facc15;
+    border-radius: 10px;
+    box-shadow: 0 3px 6px rgba(234, 179, 8, 0.2);
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: none;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .kanji-card.selected {
+    transform: scale(1.1);
+    outline: 3px solid #3b82f6;
+  }
+  .kanji-card.correct {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #15803d;
+    border-color: #86efac;
+    cursor: default;
+  }
+
+  /* モーダル関連 */
+  .modal-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(113, 63, 18, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.3s ease-out;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-card {
+    background: #ffffff;
+    border: 3px solid #fde047;
+    color: #713f12;
+    padding: 24px 32px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    max-width: 440px;
+    width: 88%;
+  }
+  .modal-card h2 { font-size: 26px; margin-bottom: 12px; color: #ef4444; }
+  .modal-card h2.win { color: #10b981; }
+
+  .stage-clear-banner {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    padding: 24px 32px;
+    border-radius: 20px;
+    box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
+    text-align: center;
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .start-hero-card {
+    background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+    border: 4px solid #ffffff;
+    color: #713f12;
+    padding: 28px 24px;
+    border-radius: 28px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(234, 179, 8, 0.4);
+    max-width: 460px;
+    width: 90%;
+  }
+  .start-hero-title {
+    font-size: clamp(28px, 4.2vw, 38px);
+    font-weight: 900;
+    color: #ea580c;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 0 #ffffff;
+  }
+  .start-play-btn {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 900;
+    padding: 12px 40px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4);
+    transition: transform 0.15s;
+  }
+
+  /* ゴールボーナス */
+  .bonus-banner {
+    background: linear-gradient(135deg, #f59e0b, #d97706, #b45309);
+    border: 3px solid #fef08a;
+    color: #ffffff;
+    padding: 28px 36px;
+    border-radius: 24px;
+    box-shadow: 0 0 50px rgba(245, 158, 11, 0.8);
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+  }
+  .bonus-amount {
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 900;
+    color: #fef08a;
+  }
+
+  /* 特別ボーナスステージ */
+  .special-stage-container {
+    background: #fefce8;
+    border: 4px solid #fde047;
+    border-radius: 20px;
+    padding: 16px;
+    width: 94%;
+    max-width: 860px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .special-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #713f12;
+    border-bottom: 2px dashed #fde047;
+    padding-bottom: 8px;
+  }
+  .special-title { font-size: clamp(16px, 2.2vw, 22px); font-weight: 900; color: #ea580c; }
+  
+  .special-grid-8x8 {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1;
+  }
+  .special-panel {
+    background: #ffffff;
+    border: 2px solid #facc15;
+    border-radius: 8px;
+    color: #713f12;
+    font-size: clamp(14px, 2vw, 20px);
+    font-weight: 900;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .special-panel.hit {
+    background: #4ade80 !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+  }
+  .special-panel.miss {
+    background: #f87171 !important;
+    border-color: #dc2626 !important;
+  }
+
+  .gojyuon-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 20px;
+  }
+  .gojyuon-card {
+    width: 52px; height: 52px;
+    background: #ffffff;
+    border: 3px solid #38bdf8;
+    border-radius: 12px;
+    font-size: 24px;
+    font-weight: 900;
+    color: #0369a1;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .gojyuon-card.cleared { opacity: 0.2; pointer-events: none; }
+
+  /* ステージズーム */
+  #stage-zoom-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(254, 240, 138, 0.92);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  #stage-zoom-overlay.show { opacity: 1; pointer-events: auto; }
+  .stage-zoom-text {
+    font-size: clamp(32px, 7vw, 72px); font-weight: 900; color: #ea580c;
+    text-shadow: 3px 3px 0 #ffffff;
+  }
+
+  .modal-btns { display: flex; gap: 12px; justify-content: center; }
+  .btn {
+    padding: 10px 22px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
+  }
+  .btn-retry { background: #10b981; color: #fff; }
+  .btn-quit { background: #64748b; color: #fff; }
+  .btn-next { background: #3b82f6; color: #fff; }
+
+  #confetti-canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 90;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="confetti-canvas"></canvas>
+  <div id="track-container"></div>
+
+  <div id="stage-zoom-overlay">
+    <div id="stage-zoom-text" class="stage-zoom-text">すてーじ 1</div>
+  </div>
+
+  <div id="main-content">
+    <div id="header">
+      <div class="header-left">
+        <div class="stat-box" id="stage-display">🚩 すてーじ 1</div>
+        <div class="stat-box" id="mode-display">【ひらがな】</div>
+        <div class="stat-box" id="points-display">⭐ 0 pt</div>
+      </div>
+      <div class="stat-box" id="timer-display">⏱ 2:00</div>
+      <button class="sound-btn" id="sound-btn" onclick="toggleSound()">🔊 ON</button>
+    </div>
+
+    <div id="workspace">
+      <div id="idiom-list"></div>
+      <div id="card-pool-container">
+        <div class="pool-title">もじカード（えらんでね）</div>
+        <div id="card-pool" ondragover="allowDrop(event)" ondrop="dropToPool(event)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
+/* ひらがな 200語 データベース */
+const HIRAGANA_DATABASE = [
+  { word: "いぬ", meaning: "ワンワンと なき ひととなかよしに なる どうぶつ" },
+  { word: "ねこ", meaning: "ニャーニャーと なき からだが やわらかい どうぶつ" },
+  { word: "うさぎ", meaning: "ながい みみで ぴょんぴょん とぶ かわいい どうぶつ" },
+  { word: "ぞう", meaning: "はなが ながくて からだが おおきい どうぶつ" },
+  { word: "きりん", meaning: "くびと あしが とても ながい どうぶつ" },
+  { word: "らいおん", meaning: "つよい つめと たてがみが ある おうさま" },
+  { word: "くま", meaning: "からだが おおきく はちみつが すきな どうぶつ" },
+  { word: "さる", meaning: "きのうえを すばやく のぼる あかい かおの どうぶつ" },
+  { word: "しか", meaning: "あたまに つのがある はしるのが はやい どうぶつ" },
+  { word: "ぶた", meaning: "はなが まるくて ぶうぶう なきごえの どうぶつ" },
+  { word: "うし", meaning: "モーモー なき おいしい ぎゅうにゅうを くれる どうぶつ" },
+  { word: "うま", meaning: "あしが はやくて せなかに ひとを のせる どうぶつ" },
+  { word: "とり", meaning: "つばさで そらを とぶ いきもの" },
+  { word: "あひる", meaning: "みずの うえを すいすい およぐ しろい とり" },
+  { word: "かめ", meaning: "かたい こうらを せおい ゆっくり あるく いきもの" },
+  { word: "かえる", meaning: "ケロケロ なき あめの ひに げんきになる いきもの" },
+  { word: "へび", meaning: "あしが なく ながい からだで にょろにょろ すすむ" },
+  { word: "たこ", meaning: "あしが はちほん ある うみの いきもの" },
+  { word: "いか", meaning: "あしが じゅっぽん ある うみの いきもの" },
+  { word: "さかな", meaning: "みずの なかを すいすい およぐ いきもの" },
+  { word: "えび", meaning: "ながい ひげと かたい からだを もつ うみの いきもの" },
+  { word: "かに", meaning: "チョキチョキの はさみを もつ うみの いきもの" },
+  { word: "あり", meaning: "つちの なかに すをつくる ちいさな むし" },
+  { word: "はち", meaning: "ぶんぶん とび はちみつを あつめる むし" },
+  { word: "ちょう", meaning: "ひらひら とび はなの みつを すう きれいな むし" },
+  { word: "くも", meaning: "いとを だして すを つくる むし" },
+  { word: "りす", meaning: "どんぐりが すきで しっぽが ふわふわな どうぶつ" },
+  { word: "たぬき", meaning: "やまに すむ ぽんぽこ おなかの どうぶつ" },
+  { word: "きつね", meaning: "コンコン なき しっぽが ながい どうぶつ" },
+  { word: "すずめ", meaning: "チュンチュン と なき まちに いる ちいさな とり" },
+  { word: "からす", meaning: "からだが くろく カーカー と なきごえの とり" },
+  { word: "はと", meaning: "ポッポー と なき こうえんに たくさん いる とり" },
+  { word: "りんご", meaning: "あかくて まるい あまい くだもの" },
+  { word: "みかん", meaning: "オレンジいろで かわを むいて たべる くだもの" },
+  { word: "いちご", meaning: "あかくて かわいい すっぱくて あまい くだもの" },
+  { word: "ぶどう", meaning: "むらさきいろの つぶが たくさん ついている くだもの" },
+  { word: "すいか", meaning: "なつに たべる なかみが あかくて おおきな くだもの" },
+  { word: "もも", meaning: "ピンクいろで あまくて やわらかい くだもの" },
+  { word: "かき", meaning: "あきに できる オレンジいろの おいしい くだもの" },
+  { word: "くり", meaning: "いがいがの なかに ある あきの たべもの" },
+  { word: "たまご", meaning: "しろくて まるく わると きいろい きみが でる" },
+  { word: "ごはん", meaning: "おこめを たいた まいにちの たべもの" },
+  { word: "おはし", meaning: "ごはんを たべるときに にほんの ぼうで つかう" },
+  { word: "にく", meaning: "やったり にたりして たべる ちからになる たべもの" },
+  { word: "やさい", meaning: "からだに よい はたけで つくる たべもの" },
+  { word: "とまと", meaning: "あかくて まるい みずみずしい やさい" },
+  { word: "だいこん", meaning: "しろくて ながい おおきな やさい" },
+  { word: "なす", meaning: "むらさきいろで なつに おいしい やさい" },
+  { word: "れもん", meaning: "すっぱくて きいろい くだもの" },
+  { word: "おにぎり", meaning: "ごはんを ぎゅっと にぎって のりを まいた たべもの" },
+  { word: "あめ", meaning: "おくちの なかで なめる あまい おかし" },
+  { word: "もち", meaning: "びよーんと のびる お正月に たべる たべもの" },
+  { word: "うどん", meaning: "しろくて ながい つるつる たべる めん" },
+  { word: "みず", meaning: "のむと のどが うるおう たいせつな のみもの" },
+  { word: "おちゃ", meaning: "みどりいろで ほっとする のみもの" },
+  { word: "そら", meaning: "あおくて くもや たいようが ある たかい ばしょ" },
+  { word: "くも", meaning: "そらに ぽっかり うかんでいる しろい もの" },
+  { word: "あめ", meaning: "そらから ぽつぽつ おちてくる みずの つぶ" },
+  { word: "ゆき", meaning: "ふゆに そらから ふってくる しろくて つめたい もの" },
+  { word: "かぜ", meaning: "ふくと きの はっぱが ゆれる めに見えない ちから" },
+  { word: "にじ", meaning: "あめあがりに そらに でる ななつの いろの はし" },
+  { word: "つき", meaning: "よるの そらに まるく かがやく きいろい ほし" },
+  { word: "ほし", meaning: "よるの そらに キラキラ ひかる ちいさな ひかり" },
+  { word: "うみ", meaning: "なみが おしよせる ひろくて しおからい おおきな みず" },
+  { word: "かわ", meaning: "やまから うみへ ながれていく みずの みち" },
+  { word: "やま", meaning: "たかく そびえる きや くさが たくさん ある ばしょ" },
+  { word: "もり", meaning: "きが たくさん しげっていて どうぶつが すむ ばしょ" },
+  { word: "はな", meaning: "きれいな いろで さき よい かおりが する しょくぶつ" },
+  { word: "くさ", meaning: "みどりいろで はたけや こうえんに はえている" },
+  { word: "いし", meaning: "みちばたに おちている かたくて つめたい もの" },
+  { word: "すな", meaning: "すなばや つちが こまかくなった もの" },
+  { word: "ひ", meaning: "あかあかと もえて あたたかくて あぶない もの" },
+  { word: "えんぴつ", meaning: "もじや えを かくときに つかう どうぐ" },
+  { word: "けしごむ", meaning: "えんぴつの もじを けす どうぐ" },
+  { word: "つくえ", meaning: "べんきょうを するときに ほんを おく だい" },
+  { word: "いす", meaning: "こしを かけて すわる ための かぐ" },
+  { word: "こくばん", meaning: "きょうしつの まえにある チョークで かく いた" },
+  { word: "かばん", meaning: "きょうかしょや どうぐを いれて はこぶ ふくろ" },
+  { word: "くつ", meaning: "あしにはいて そとを あんぜんに あるく もの" },
+  { word: "ふく", meaning: "からだに きる もの" },
+  { word: "ぼうし", meaning: "あたまに かぶって ひよけにする もの" },
+  { word: "かさ", meaning: "あめの ひに さして ぬれないように する どうぐ" },
+  { word: "てがみ", meaning: "きもちや ようじを かいて おくる かみ" },
+  { word: "ほん", meaning: "ページを めくって よむ おはなしの つまった もの" },
+  { word: "おもちゃ", meaning: "あそぶときに つかう たのしい どうぐ" },
+  { word: "つみき", meaning: "きや プラスチックで かたちを つくって あそぶ" },
+  { word: "はさみ", meaning: "チョキチョキと かみを きる どうぐ" },
+  { word: "のり", meaning: "かみと かみを ぺたっと はりあわせる どうぐ" },
+  { word: "とけい", meaning: "じかんを おしえてくれる どうぐ" },
+  { word: "でんしゃ", meaning: "せんろの 上を たくさんの ひとを のせて はしる" },
+  { word: "ひこうき", meaning: "そらを たかく とんで とおくへ いく のりもの" },
+  { word: "ふね", meaning: "うみや かわの 上を すいすい すすむ のりもの" },
+  { word: "じどうしゃ", meaning: "ブーブーと どうろを はしる のりもの" },
+  { word: "ぶらんこ", meaning: "こうえんに ある ゆらゆら ゆれる あそびもの" },
+  { word: "すべりだい", meaning: "たかい ところから しゅーっと すべりおりる" },
+  { word: "あたま", meaning: "かんがえたり かみが はえている からだの いちばんうえ" },
+  { word: "かお", meaning: "めや はなや くちが ある あたまの まえがわ" },
+  { word: "め", meaning: "ものの いろや かたちを みる からだの ぶぶん" },
+  { word: "みみ", meaning: "おとや こえを きく からだの ぶぶん" },
+  { word: "はな", meaning: "においを かぐ からだの ぶぶん" },
+  { word: "くち", meaning: "ごはんを たべたり はなしを する からだの ぶぶん" },
+  { word: "て", meaning: "ものを つかんだり もじを かいたり する ぶぶん" },
+  { word: "あし", meaning: "あるいたり はしったり たったり する ぶぶん" },
+  { word: "おなか", meaning: "ごはんが はいる からだの まんなか" },
+  { word: "ゆび", meaning: "てや あしの さきに ５ほんずつ ある ぶぶん" },
+  { word: "こころ", meaning: "うれしい かなしいを かんじる たいせつな ぶぶん" },
+  { word: "あさ", meaning: "たいようが のぼって あたらしい いちにちが はじまる" },
+  { word: "ひる", meaning: "たいようが いちばん たかく ごはんを たべる じかん" },
+  { word: "よる", meaning: "くらくなって ほしが でて ねる じかん" },
+  { word: "きょう", meaning: "いま すごしている この いちにち" },
+  { word: "あした", meaning: "きょうの つぎに やっんでくる ひ" },
+  { word: "きのう", meaning: "きょうの ひとつ まえの ひ" },
+  { word: "はる", meaning: "さくらが さいて あたたかくなる きせつ" },
+  { word: "なつ", meaning: "たいようが ギラギラして あつくなる きせつ" },
+  { word: "あき", meaning: "はっぱが あかくなり くだものが おいしい きせつ" },
+  { word: "ふゆ", meaning: "さむくなって ゆきが ふったりする きせつ" },
+  { word: "あかい", meaning: "りんごや トマトのような いろ" },
+  { word: "あおい", meaning: "そらや うみのような いろ" },
+  { word: "しろい", meaning: "ゆきや ごはんのような いろ" },
+  { word: "くろい", meaning: "よるの そらや からすのような いろ" },
+  { word: "おおきい", meaning: "ぞうや やまのように かたちが たかい ひろい" },
+  { word: "ちいさい", meaning: "ありや すずめのように かたちが こんもりしている" },
+  { word: "はやい", meaning: "しんかんせんや あしが すばやい ようす" },
+  { word: "おそい", meaning: "かめや カタツムリのように じかんがかかる" },
+  { word: "たのしい", meaning: "わくわくして えがおになれる きもち" },
+  { word: "うれしい", meaning: "いいことがあって こころが ぽかぽかする" },
+  { word: "はしる", meaning: "あしを すばやく うごかして すすむ" },
+  { word: "あるく", meaning: "あしを いっぽずつ だして すすむ" },
+  { word: "とぶ", meaning: "ジャンプしたり そらを すすんだりする" },
+  { word: "およぐ", meaning: "みずの なかで てあしを うごかして すすむ" },
+  { word: "うたう", meaning: "おんがくに あわせて こえを だす" },
+  { word: "ねる", meaning: "ふとんに はいって めを つむって やすむ" },
+  { word: "たべる", meaning: "ごはんや おかしを おくちに いれて あじわう" },
+  { word: "のむ", meaning: "みずや ミルクを ごくごくと おなかに いれる" },
+  { word: "わらう", meaning: "たのしくて ニコニコがおに なる" },
+  { word: "はなす", meaning: "ことばを つかって あいてに つたえる" },
+  { word: "かく", meaning: "えんぴつで もじや えを かみにつける" },
+  { word: "よむ", meaning: "ほんなどの もじを めで おっていく" },
+  { word: "あそぶ", meaning: "おもちゃや ともだちと たのしく すごす" },
+  { word: "ともだち", meaning: "いっしょに あそんだり はなしたりする なかよし" },
+  { word: "せんせい", meaning: "がっこうで いろいろな ことを おしえてくれる ひと" },
+  { word: "おとうさん", meaning: "じぶんを だいじにしてくれる かぞくの おとうさん" },
+  { word: "おかあさん", meaning: "じぶんを だいじにしてくれる かぞくの おかあさん" },
+  { word: "あかちゃん", meaning: "うまれたばかりの ちいさくて かわいい ひと" },
+  { word: "えがお", meaning: "にこにこと たのしそうな かお" },
+  { word: "ことば", meaning: "きもちや かんがえを つたえる ための こえや もじ" },
+  { word: "あめだま", meaning: "おくちに いれて なめる あまい おかし" },
+  { word: "あせ", meaning: "うんどうしたり あついときに からだから でる みず" },
+  { word: "あと", meaning: "あるいた ときに すなや ゆきに のこる しるし" },
+  { word: "あな", meaning: "つちや かべに あいている ぽっかりした ばしょ" },
+  { word: "いと", meaning: "おさいほうで つかう ほそい ひも" },
+  { word: "いのち", meaning: "いきていく ための たいせつな ちから" },
+  { word: "うち", meaning: "かぞくで くらしている たてもの・いえ" },
+  { word: "うた", meaning: "おんがくに あわせて うたう メロディ" },
+  { word: "え", meaning: "クレヨンや えんぴつで かいた きれいな え" },
+  { word: "えき", meaning: "でんしゃや バスが とまる ばしょ" },
+  { word: "えだ", meaning: "きから のびている ほそい ぶぶん" },
+  { word: "おと", meaning: "みみで きこえる いろいろな しんどう" },
+  { word: "おどり", meaning: "おんがくに あわせて からだを うごかす こと" },
+  { word: "かがみ", meaning: "じぶんの かおや すがたが うつる どうぐ" },
+  { word: "かぎ", meaning: "ドアを しめたり あけたり する ちいさな かなぐ" },
+  { word: "かぜびょうき", meaning: "くしゃみを したり ねつが でたり する" },
+  { word: "かど", meaning: "つくえや へやの すみっこにある とがった ばしょ" },
+  { word: "かべ", meaning: "へやを かこんでいる たてものの一部" },
+  { word: "かみ", meaning: "えんぴつで もじや えを かく うすい もの" },
+  { word: "き", meaning: "はっぱや えだが ある たかい しょくぶつ" },
+  { word: "きょうしつ", meaning: "がっこうで べんきょうを する へや" },
+  { word: "くに", meaning: "わたしたちが くらしている 日本などの ばしょ" },
+  { word: "けむり", meaning: "ひを もやすと そらに のぼっていく しろい くも" },
+  { word: "こえ", meaning: "ひとや どうぶつが おくちから だす おと" },
+  { word: "こおり", meaning: "みずが つめたくなって かたくなった もの" },
+  { word: "さか", meaning: "のぼったり くだったり する かたむいた みち" },
+  { word: "しお", meaning: "うみの みずから できる しょっぱい もの" },
+  { word: "す", meaning: "とりや ありや くもが くらす いえ" },
+  { word: "すなば", meaning: "こうえんに ある すなが たくさん ある ばしょ" },
+  { word: "すみ", meaning: "へやの かどの ばしょ" },
+  { word: "せんろ", meaning: "でんしゃが はしる てつの みち" },
+  { word: "そと", meaning: "いえや がっこうの たてものの くうかんの つづき" },
+  { word: "たけ", meaning: "まっすぐ たかく のびる みどりいろの しょくぶつ" },
+  { word: "たね", meaning: "つちに まくと めが でてくる ちいさな つぶ" },
+  { word: "つち", meaning: "じめんの 下に ある 泥や 砂の もと" },
+  { word: "つの", meaning: "しかや うしの あたまに はえている かたい もの" },
+  { word: "なみ", meaning: "うみの みずが ゆらゆらと おしよせてくる" },
+  { word: "にわ", meaning: "いえの そとに ある はなや きが ある ひろば" },
+  { word: "ね", meaning: "しょくぶつの つちの 下に のびている ぶぶん" },
+  { word: "のはら", meaning: "くさが たくさん はえている ひろい ばしょ" },
+  { word: "はっぱ", meaning: "きや くさに はえている みどりいろの ぶぶん" },
+  { word: "ひろば", meaning: "みんなが あつまれる ひろい ばしょ" },
+  { word: "ふね", meaning: "うみや かわを すすむ おおきな のりもの" },
+  { word: "ほのお", meaning: "あかあかと もえあがる ひの ちから" },
+  { word: "まち", meaning: "たくさんの いえや おみせが ある ばしょ" },
+  { word: "まど", meaning: "へやに ひかりや かぜを いれる とびら" },
+  { word: "みち", meaning: "ひとや くるまが とおる ばしょ" },
+  { word: "むし", meaning: "ありや ちょうや かぶとむしの なかま" },
+  { word: "むら", meaning: "いえが すくなく しぜんが たくさん ある ばしょ" },
+  { word: "め", meaning: "しょくぶつの たねから さいしょに でてくる みどり" },
+  { word: "もり", meaning: "きが たくさん はえている ひろい ばしょ" },
+  { word: "やまみち", meaning: "やまの なかに ある くねくねした みち" },
+  { word: "ゆか", meaning: "へやの なかで あしで たつ いちばん 下の ぶぶん" },
+  { word: "よるそら", meaning: "よるの くらくなった そら" },
+  { word: "らくだ", meaning: "せなかに こぶがある どうぶつ" },
+  { word: "しまうま", meaning: "からだに しまもようがある どうぶつ" },
+  { word: "ひつじ", meaning: "からだに ふわふわの けがある どうぶつ" },
+  { word: "やぎ", meaning: "つのがあり くさを たべる どうぶつ" },
+  { word: "ねずみ", meaning: "ちいさな からだで ちょこちょこ うごく どうぶつ" },
+  { word: "もぐら", meaning: "つちの なかに あなを ほる どうぶつ" },
+  { word: "こうもり", meaning: "よるに とびまわる どうぶつ" },
+  { word: "いのしし", meaning: "からだが がっしりした やまの どうぶつ" },
+  { word: "おおかみ", meaning: "いぬに にて むれで くらす どうぶつ" },
+  { word: "あざらし", meaning: "うみで およぐ まるい からだの どうぶつ" },
+  { word: "あしか", meaning: "ひれを つかって およぐ どうぶつ" },
+  { word: "おっとせい", meaning: "みずの なかを およぐ どうぶつ" },
+  { word: "あらいぐま", meaning: "てで ものを あらうような しぐさをする どうぶつ" },
+  { word: "かば", meaning: "みずべで くらす からだの おおきな どうぶつ" },
+  { word: "さい", meaning: "かたい かわと つのがある どうぶつ" },
+  { word: "ひょう", meaning: "からだに もようがある はやい どうぶつ" },
+  { word: "ちーたー", meaning: "はしるのが とても はやい どうぶつ" },
+  { word: "やまあらし", meaning: "せなかに とげがある どうぶつ" },
+  { word: "かわうそ", meaning: "かわで およぐのが とくいな どうぶつ" },
+  { word: "まんぼう", meaning: "うみを ゆったり およぐ さかな" },
+  { word: "かぶとむし", meaning: "つのがある なつの むし" },
+  { word: "くわがた", meaning: "おおきな あごを もつ むし" },
+  { word: "せみ", meaning: "なつに ミーンミーンと なく むし" },
+  { word: "とんぼ", meaning: "ながい はねで すばやく とぶ むし" },
+  { word: "ばった", meaning: "うしろあしで ぴょんと はねる むし" },
+  { word: "てんとうむし", meaning: "まるい からだに もようがある むし" },
+  { word: "だんごむし", meaning: "さわると まるくなる いきもの" },
+  { word: "かたつむり", meaning: "からを せおって ゆっくり すすむ いきもの" },
+  { word: "みみず", meaning: "つちの なかに すむ ながい いきもの" },
+  { word: "ほたる", meaning: "よるに ひかる むし" },
+  { word: "すみれ", meaning: "ちいさく かわいい はな" },
+  { word: "たんぽぽ", meaning: "きいろい はなで わたげが できる しょくぶつ" },
+  { word: "ひまわり", meaning: "たいようの ような おおきな はな" },
+  { word: "あさがお", meaning: "つるが のびて あさに はなが さく しょくぶつ" },
+  { word: "さくら", meaning: "はるに うすい ピンクの はなが さく き" },
+  { word: "うめ", meaning: "はるより はやく はなが さく き" },
+  { word: "ばら", meaning: "とげがあり きれいな はなが さく しょくぶつ" },
+  { word: "ちゅうりっぷ", meaning: "はるに さく つぼみの かたちが とくちょうの はな" },
+  { word: "きく", meaning: "あきに よく みられる はな" },
+  { word: "すすき", meaning: "あきの のはらに はえる ほそい くさ" },
+  { word: "じゃがいも", meaning: "つちの なかで そだつ いも" },
+  { word: "さつまいも", meaning: "あまくて ほくほくした いも" },
+  { word: "にんじん", meaning: "オレンジいろの やさい" },
+  { word: "きゅうり", meaning: "みどりいろで ながい やさい" },
+  { word: "きゃべつ", meaning: "はっぱが まるく かさなる やさい" },
+  { word: "はくさい", meaning: "なべものに よく はいる はっぱの やさい" },
+  { word: "ほうれんそう", meaning: "みどりの はが たくさんある やさい" },
+  { word: "ぴーまん", meaning: "みどりいろで にがみのある やさい" },
+  { word: "かぼちゃ", meaning: "おおきくて あまい みどりや オレンジの やさい" },
+  { word: "たまねぎ", meaning: "きると なみだが でることがある やさい" },
+  { word: "ねぎ", meaning: "しろと みどりの ながい やさい" },
+  { word: "とうもろこし", meaning: "つぶが たくさん ならぶ やさい" },
+  { word: "しいたけ", meaning: "かさのある きのこ" },
+  { word: "まつたけ", meaning: "よい かおりがする きのこ" },
+  { word: "おむすび", meaning: "ごはんを にぎって つくる たべもの" },
+  { word: "みそしる", meaning: "みそを といて つくる しるもの" },
+  { word: "すし", meaning: "すめしに さかななどを のせる たべもの" },
+  { word: "てんぷら", meaning: "やさいや さかなに ころもをつけて あげる りょうり" },
+  { word: "やきそば", meaning: "めんと やさいを いためた りょうり" },
+  { word: "ぎょうざ", meaning: "にくや やさいを かわで つつんだ りょうり" },
+  { word: "まくら", meaning: "ねるときに あたまを のせる もの" },
+  { word: "ふとん", meaning: "ねるときに からだに かけたり しく もの" },
+  { word: "せっけん", meaning: "てや からだを あらう もの" },
+  { word: "たおる", meaning: "からだや ての みずを ふく ぬの" },
+  { word: "ぞうきん", meaning: "ゆかや つくえを ふく ぬの" },
+  { word: "ほうき", meaning: "ごみを はいて あつめる どうぐ" },
+  { word: "ちりとり", meaning: "ほうきで あつめた ごみを いれる どうぐ" },
+  { word: "せんたく", meaning: "よごれた ふくを あらうこと" },
+  { word: "そうじ", meaning: "よごれや ごみを とりのぞくこと" },
+  { word: "れいぞうこ", meaning: "たべものを つめたく たもつ きかい" },
+  { word: "せんぷうき", meaning: "はねを まわして かぜを おこす きかい" },
+  { word: "すとーぶ", meaning: "へやを あたためる どうぐ" },
+  { word: "でんき", meaning: "あかりや きかいを うごかす ちから" },
+  { word: "でんわ", meaning: "とおくの ひとと はなす どうぐ" },
+  { word: "しんぶん", meaning: "ニュースや できごとを つたえる かみ" },
+  { word: "ちず", meaning: "ばしょや みちを あらわした ず" },
+  { word: "しゃしん", meaning: "ひとや けしきを うつした もの" },
+  { word: "にもつ", meaning: "はこんだり とどけたりする もの" },
+  { word: "おかね", meaning: "ものを かったり うったりするときに つかうもの" },
+  { word: "さいふ", meaning: "おかねや カードを いれる もの" },
+  { word: "こくご", meaning: "ことばや もじを まなぶ きょうか" },
+  { word: "さんすう", meaning: "かずや けいさんを まなぶ きょうか" },
+  { word: "りか", meaning: "しぜんの しくみを しらべる きょうか" },
+  { word: "しゃかい", meaning: "くらしや まちの ことを まなぶ きょうか" },
+  { word: "おんがく", meaning: "うたや がっきを たのしむ きょうか" },
+  { word: "ずこう", meaning: "えや こうさくを つくる きょうか" },
+  { word: "たいいく", meaning: "からだを うごかして まなぶ きょうか" },
+  { word: "きゅうしょく", meaning: "がっこうで たべる ひるごはん" },
+  { word: "としょしつ", meaning: "ほんを よんだり かりたりする へや" },
+  { word: "うんどうじょう", meaning: "はしったり スポーツをしたりする ひろば" },
+  { word: "ろうか", meaning: "へやと へやを つなぐ とおりみち" },
+  { word: "かいだん", meaning: "うえや したへ いどうする だんだんの みち" },
+  { word: "げんかん", meaning: "いえや たてものの でいりぐち" },
+  { word: "こうさてん", meaning: "みちが いくつか まじわる ばしょ" },
+  { word: "しんごう", meaning: "くるまや ひとに とまる・すすめを しらせるもの" },
+  { word: "はし", meaning: "かわや みぞを わたるための たてもの" },
+  { word: "こうえん", meaning: "あそんだり やすんだりできる ばしょ" },
+  { word: "びょういん", meaning: "びょうきや けがを みてもらう ところ" },
+  { word: "ゆうびん", meaning: "てがみや にもつを おくる しくみ" },
+  { word: "かいもの", meaning: "ほしい ものを みせなどで かうこと" },
+  { word: "くび", meaning: "あたまと からだを つなぐ ぶぶん" },
+  { word: "かた", meaning: "うでと からだが つながる ぶぶん" },
+  { word: "ひじ", meaning: "うでの まんなかで まがる ぶぶん" },
+  { word: "ひざ", meaning: "あしの まんなかで まがる ぶぶん" },
+  { word: "せなか", meaning: "からだの うしろがわ" },
+  { word: "むね", meaning: "からだの まえがわの うえの ぶぶん" },
+  { word: "こし", meaning: "からだの まんなかより したの ぶぶん" },
+  { word: "ほっぺ", meaning: "かおの めの したの やわらかい ぶぶん" },
+  { word: "まゆげ", meaning: "めの うえに はえている け" },
+  { word: "まつげ", meaning: "めの ふちに はえている け" },
+  { word: "なみだ", meaning: "かなしいときなどに めから でる しずく" },
+  { word: "くしゃみ", meaning: "はなから いきが つよく でること" },
+  { word: "せき", meaning: "のどから つよく いきを だすこと" },
+  { word: "きもち", meaning: "こころで かんじる おもい" },
+  { word: "やさしい", meaning: "あいてを おもいやる ようす" },
+  { word: "しずか", meaning: "おとや こえが あまり しない ようす" },
+  { word: "にぎやか", meaning: "ひとや おとが たくさんある ようす" },
+  { word: "つよい", meaning: "ちからが おおきい ようす" },
+  { word: "よわい", meaning: "ちからが すくない ようす" },
+  { word: "あかり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あさひ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あしあと", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あそび", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あつさ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あぶら", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あまぐも", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あまつぶ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あみ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "あめつち", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いかだ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いかり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いきもの", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いけがき", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いしころ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いちば", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いなほ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いね", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "いばしょ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うきわ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うしろ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うでどけい", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うまごや", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うめぼし", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "うらにわ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "えほん", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おかし", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おくりもの", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おしろ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おすもう", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おてら", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おまつり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おみせ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おやつ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おりがみ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "おれい", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かいがら", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かいものかご", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かいわ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かおり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かきごおり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かくれんぼ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かざぐるま", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かたかな", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かみなり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "からだ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "かわら", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きいろ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きおん", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きせつ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きっぷ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きのこ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きもの", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きょうりゅう", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "きんぎょ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くうき", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くさばな", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くすり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くちぶえ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くつした", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くびわ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くらし", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "くるまいす", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "けいと", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "けしき", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "けんか", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こいのぼり", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こいぬ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こいねこ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こがらし", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こたつ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こだま", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こなゆき", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こばこ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こま", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こむぎ", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "こもれび", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "ころも", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "さかみち", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" },
+  { word: "さかなや", meaning: "くらしや しぜんの なかで みたり つかったりする ことば" }
+
+];
+
+/* カタカナ 200語 データベース */
+const KATAKANA_DATABASE = [
+  { word: "パン", meaning: "こむぎこから つくる ふっくらした たべもの" },
+  { word: "バナナ", meaning: "きいろくて かわを むいて たべる ながい くだもの" },
+  { word: "トマト", meaning: "あかくて まるい みずみずしい やさい" },
+  { word: "バス", meaning: "たくさんの ひとを のせて はしる おおきな くるま" },
+  { word: "テレビ", meaning: "アニメや ニュースの えいぞうが うつる はこ" },
+  { word: "カメラ", meaning: "しゃしんを パシャリと とる どうぐ" },
+  { word: "ラジオ", meaning: "こえや おんがくだけが きこえてくる どうぐ" },
+  { word: "ドア", meaning: "へやの いりぐちに ある あけしめする とびら" },
+  { word: "ベッド", meaning: "すやすや ねる ための ふかふかした かぐ" },
+  { word: "コップ", meaning: "みずや ジュースを いれて のむ いれもの" },
+  { word: "スプーン", meaning: "スープや カレーを すくって たべる どうぐ" },
+  { word: "フォーク", meaning: "パスタなどを さして たべる どうぐ" },
+  { word: "ナイフ", meaning: "ハンバーグやおにくを きる どうぐ" },
+  { word: "ケーキ", meaning: "おたんじょうびに たべる あまくて かわいい おかし" },
+  { word: "アイス", meaning: "つめたくて おくちの なかで とける あまい おかし" },
+  { word: "チョコ", meaning: "ブラウンいろで あまくて おいしい おかし" },
+  { word: "クッキー", meaning: "サクサクした やいた あまい おかし" },
+  { word: "プリン", meaning: "ぷるぷるゆれる カラメルソースの あまい おかし" },
+  { word: "ゼリー", meaning: "プルプルしていて つめたい くだものあじのおかし" },
+  { word: "ジュース", meaning: "くだものの あじがする あまい のみもの" },
+  { word: "スープ", meaning: "スプーンで のむ あたたかい しるもの" },
+  { word: "カレー", meaning: "スパイスと やさいを にこんだ ごはんに かける たべもの" },
+  { word: "ラーメン", meaning: "あたたかい スープと めんの にんきの たべもの" },
+  { word: "パスタ", meaning: "フォークで まきまきして たべる めん" },
+  { word: "ピザ", meaning: "まるい きじに チーズや トマトを のせて やいた たべもの" },
+  { word: "バター", meaning: "パンに ぬると こくが でる ミルクから つくる もの" },
+  { word: "チーズ", meaning: "きいろくて トロリと とける ミルクの たべもの" },
+  { word: "ミルク", meaning: "うしさんから もらえる しろい のみもの" },
+  { word: "ライオン", meaning: "つよい たてがみが ある ひゃくじゅうの おうさま" },
+  { word: "トラ", meaning: "きいろと くろの しまもようが ある おおきな ネコ" },
+  { word: "パンダ", meaning: "しろと くろの もようがあり ササを たべる どうぶつ" },
+  { word: "コアラ", meaning: "ユーカリの きに のぼって ねている かわいい どうぶつ" },
+  { word: "ゴリラ", meaning: "むねを ポンポン たたく ちからの つよい どうぶつ" },
+  { word: "ペンギン", meaning: "こおりの うえを ペタペタ あるく およぎが とくいな とり" },
+  { word: "カンガルー", meaning: "おなかの ポケットに あかちゃんを いれて ピョンピョン とぶ" },
+  { word: "フラミンゴ", meaning: "ピンクいろで いっぽんあしで たつ きれいな とり" },
+  { word: "イルカ", meaning: "うみで ジャンプするのが とくいな かしこい いきもの" },
+  { word: "クジラ", meaning: "うみの なかで いちばん おおきな いきもの" },
+  { word: "ラッコ", meaning: "あおむけに うかんで かいを コンコン わる いきもの" },
+  { word: "サメ", meaning: "するとい はを もち うみを およぐ かっこいい いきもの" },
+  { word: "ハムスター", meaning: "ひまわりの タネが すきな ちいさくて まるい どうぶつ" },
+  { word: "インコ", meaning: "ことばを まねして はなすことが ある カラフルな とり" },
+  { word: "トラック", meaning: "にもつを たくさん のせて はしる おおきな くるま" },
+  { word: "タクシー", meaning: "おかねを はらって もくてきちまで のせてくれる くるま" },
+  { word: "パトカー", meaning: "ウーウーと サイレンを ならして まちを まもる くるま" },
+  { word: "ロケット", meaning: "うちゅうに むかって ゴーッと とびたつ のりもの" },
+  { word: "ヘリコプター", meaning: "あたまの プロペラを まわして そらに たつ のりもの" },
+  { word: "ヨット", meaning: "かぜの ちからで うみの うえを すすむ ふね" },
+  { word: "ノート", meaning: "えんぴつで もじや かずを かきこむ ほん" },
+  { word: "クレヨン", meaning: "カラフルな いろで えを ぬる ぶんぼうぐ" },
+  { word: "バッグ", meaning: "ものを いれて てで もったり かたに かける ふくろ" },
+  { word: "キャップ", meaning: "つばが まえについた スポーツようの ぼうし" },
+  { word: "シャツ", meaning: "からだの うえに きる ふく" },
+  { word: "ズボン", meaning: "あしを いれて はく ふく" },
+  { word: "コート", meaning: "ふゆの さむい ひに うえから はおる あたたかい ふく" },
+  { word: "ブーツ", meaning: "あしもとを あたたかくする ながい くつ" },
+  { word: "ハンカチ", meaning: "てを あらった あとに つかう ちいさな ぬの" },
+  { word: "ティッシュ", meaning: "はなを かんだり よごれを ふく やわらかい かみ" },
+  { word: "サッカー", meaning: "あしで ボールを けって ゴールを ねらう スポーツ" },
+  { word: "テニス", meaning: "ラケットで ちいさな ボールを うちあう スポーツ" },
+  { word: "ダンス", meaning: "おんがくに あわせて からだを たのしく うごかす" },
+  { word: "ゲーム", meaning: "ルールを まもって たのしく あそぶ こと" },
+  { word: "トランプ", meaning: "すうじや マークがついた カードあそび" },
+  { word: "ピアノ", meaning: "くろと しろの けんばんを おして おとを だす がっき" },
+  { word: "ギター", meaning: "げんを ポロンと ならして えんそうする がっき" },
+  { word: "ドラム", meaning: "スティックで たたいて リズムを きざむ がっき" },
+  { word: "ブランコ", meaning: "こうえんに ある まえうしろに ゆれる あそびもの" },
+  { word: "シーソー", meaning: "ふたりで のって うえしたに ゆれる あそびもの" },
+  { word: "ライト", meaning: "ピカッと くらやみを てらす あかり" },
+  { word: "テーブル", meaning: "ごはんを たべたり ものを おく だい" },
+  { word: "ソファー", meaning: "ゆったり すわれる ふかふかの いす" },
+  { word: "シャワー", meaning: "おゆが あめのように でて からだを あらう どうぐ" },
+  { word: "トイレ", meaning: "おしっこや うんちを する きれいな ばしょ" },
+  { word: "オレンジ", meaning: "あかるい だいだいいろの くだもの" },
+  { word: "メロン", meaning: "あまくて こうきゅうな くだもの" },
+  { word: "イチゴ", meaning: "あかくて つぶつぶの ある くだもの" },
+  { word: "パイナップル", meaning: "トゲトゲの かわの なかに あまい きいろい なかみ" },
+  { word: "キウイ", meaning: "けが はえた かわの なかに みどりいろの つぶつぶ" },
+  { word: "キャベツ", meaning: "はっぱが なんちょうにも かさなった やさい" },
+  { word: "レタス", meaning: "シャキシャキした サラダに つかう やさい" },
+  { word: "ピーマン", meaning: "みどりいろで すこし にがい やさい" },
+  { word: "オニオン", meaning: "たまねぎの カタカナのことば" },
+  { word: "ポテト", meaning: "じゃがいもを あげたり やいたりした たべもの" },
+  { word: "ハンバーグ", meaning: "おにくを こねて やいた みんなが だいすきな ごちそう" },
+  { word: "コロッケ", meaning: "じゃがいもと おにくを パンこで あげた たべもの" },
+  { word: "グラタン", meaning: "ホワイトソースと チーズを オーブンで やいた たべもの" },
+  { word: "ソーセージ", meaning: "おにくが つまった パキッとはじける たべもの" },
+  { word: "ハム", meaning: "うすく スライスした おにくの たべもの" },
+  { word: "サラダ", meaning: "やさいを ドレッシングで あえた たべもの" },
+  { word: "キャンディ", meaning: "あめだまの カタカナのことば" },
+  { word: "ドーナツ", meaning: "まんなかに あなが あいた あまい おかし" },
+  { word: "チョコ", meaning: "カカオから つくる あまい おかし" },
+  { word: "チョコレート", meaning: "あまくて とける にんきの おかし" },
+  { word: "シマウマ", meaning: "しろと くろの しまもようが ある うまの なかま" },
+  { word: "サイ", meaning: "はなの うえに かたい つのがある おおきな どうぶつ" },
+  { word: "ヒョウ", meaning: "スピードが はやい てんてん もようの どうぶつ" },
+  { word: "ダチョウ", meaning: "そらは とべないけれど はしるのが めっちゃ はやい とり" },
+  { word: "クラゲ", meaning: "うみで ぷかぷか ただよう とうめいな いきもの" },
+  { word: "マンボウ", meaning: "まるくて おおきくて のんびり およぐ うみの いきもの" },
+  { word: "ショベルカー", meaning: "おおきな つめで つちを すくう こうじの くるま" },
+  { word: "ダンプカー", meaning: "にだいをつりあげて つちを おとす くるま" },
+  { word: "ジェットき", meaning: "そらを ビューンと すごい スピードで とぶ ひこうき" },
+  { word: "フェリー", meaning: "くるまや ひとを のせて うみを わたる おおきな ふね" },
+  { word: "バイシクル", meaning: "じてんしゃの カタカナのことば" },
+  { word: "スクーター", meaning: "エンジンで うごく ちいさな バイク" },
+  { word: "ホッチキス", meaning: "かみを はりで パチンと とめる ぶんぼうぐ" },
+  { word: "セロテープ", meaning: "ペタッと はれる とうめいな テープ" },
+  { word: "リュック", meaning: "せなかにおう おおきな かばん" },
+  { word: "スニーカー", meaning: "はしったり あるいたりしやすい スポーツの くつ" },
+  { word: "ドッジボール", meaning: "ボールを あてあう たのしい あそび" },
+  { word: "プール", meaning: "みずを ためて およぐ ばしょ" },
+  { word: "バイオリン", meaning: "ゆみで げんを こすって きれいな おとを だす がっき" },
+  { word: "トランペット", meaning: "プァーンと たかい おとが でる きんいろの がっき" },
+  { word: "ジャングルジム", meaning: "こうえんに ある あみのめを のぼる あそびもの" },
+  { word: "スライド", meaning: "すべりだいの カタカナのことば" },
+  { word: "スマホ", meaning: "がめんを タッチして つかう ちいさな パソコン" },
+  { word: "パソコン", meaning: "キーボードで もじを うって べんきょうをする どうぐ" },
+  { word: "ミラー", meaning: "かがみの カタカナのことば" },
+  { word: "マスク", meaning: "くちや はなを おおって かぜを よぼうする ぬの" },
+  { word: "タオル", meaning: "てや からだを ふく ふかふかの ぬの" },
+  { word: "ブラシ", meaning: "かみを とかしたり よごれを おとしたり する どうぐ" },
+  { word: "リモコン", meaning: "はなれた ばしょから テレビを うごかす どうぐ" },
+  { word: "ポスター", meaning: "かべに はる おおきな しゃしんや え" },
+  { word: "シール", meaning: "ペタッと はれる ちいさな かみ" },
+  { word: "スタンプ", meaning: "インクを つけて ぽんとおす はんこ" },
+  { word: "カレンダー", meaning: "つきや ひにちが かいてある かみの しーと" },
+  { word: "ポケット", meaning: "ふくや かばんについている ものを いれる ばしょ" },
+  { word: "ボタン", meaning: "ふくを とめたり でんきを つけたりする つまみ" },
+  { word: "リボン", meaning: "プレゼントや かみに むすぶ きれいな ひも" },
+  { word: "ベルト", meaning: "ズボンが おちないように こしに まく ひも" },
+  { word: "マフラー", meaning: "ふゆに くびに まく あたたかい ぬの" },
+  { word: "パジャマ", meaning: "よる ねるときに きる ふく" },
+  { word: "サンダル", meaning: "なつに あしにはく すずしい くつ" },
+  { word: "スリッパ", meaning: "いえの なかではく かるい くつ" },
+  { word: "サングラス", meaning: "まぶしい ひかりから めを まもる メガネ" },
+  { word: "メガネ", meaning: "めが よく みえるように つける どうぐ" },
+  { word: "リング", meaning: "ゆびにはめる きれいな かざり" },
+  { word: "ネックレス", meaning: "くびにかける きれいな かざり" },
+  { word: "ピアス", meaning: "みみにつける きれいな かざり" },
+  { word: "コスメ", meaning: "かおを きれいにする おけしょうの どうぐ" },
+  { word: "シャンプー", meaning: "あたまを あらう あわあわの えき" },
+  { word: "リンス", meaning: "あたまを あらった あとに かみを さらさらにする" },
+  { word: "せっけん", meaning: "てや からだを あらう あわあわの つみき" },
+  { word: "ドライヤー", meaning: "あたたかい かぜで かみを かわかす どうぐ" },
+  { word: "ストロー", meaning: "ジュースをごくごく のむ ための ほそい くだ" },
+  { word: "ポット", meaning: "おゆを あたたかいまま たもつ いれもの" },
+  { word: "フライパン", meaning: "おにくや たまごを やく てつの どうぐ" },
+  { word: "ナベ", meaning: "スープや カレーを にる おおきな どうぐ" },
+  { word: "レンジ", meaning: "たべものを チンして あたたかくする でんち製品" },
+  { word: "ポップコーン", meaning: "トウモロコシから つくる パチパチ弾ける おかし" },
+  { word: "ポテトチップス", meaning: "じゃがいもを うすく あげた パリパリの おかし" },
+  { word: "マシュマロ", meaning: "ふわふわして あまい しろい おかし" },
+  { word: "ガム", meaning: "クチャクチャ かんで あじを楽しむ おかし" },
+  { word: "クレープ", meaning: "うすい きじに フルーツや クリームを まいた おかし" },
+  { word: "パフェ", meaning: "フルーツや アイスが たくさん のった ごちそう" },
+  { word: "ワッフル", meaning: "あみめの もようがついた やいた あまい おかし" },
+  { word: "シュークリーム", meaning: "カスタードクリームが たっぷり はいった おかし" },
+  { word: "フルーツ", meaning: "りんごや バナナなどの あまい くだもの" }
+,
+  { word: "アパート", meaning: "いくつもの かていが すむ たてもの" },
+  { word: "マンション", meaning: "たくさんの かていが すむ おおきな たてもの" },
+  { word: "ビル", meaning: "かいが いくつもある おおきな たてもの" },
+  { word: "エレベーター", meaning: "ひとや にもつを のせて うえしたに うごく きかい" },
+  { word: "エスカレーター", meaning: "のりながら うえや したへ いどうする かいだん" },
+  { word: "スーパー", meaning: "たべものや せいかつの ものを うる みせ" },
+  { word: "デパート", meaning: "いろいろな ものを うる おおきな みせ" },
+  { word: "コンビニ", meaning: "いろいろな ものを てがるに かえる みせ" },
+  { word: "レストラン", meaning: "りょうりを たべられる みせ" },
+  { word: "カフェ", meaning: "のみものや かるい たべものを たのしむ みせ" },
+  { word: "ホテル", meaning: "りょこうなどで とまる たてもの" },
+  { word: "キャンプ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "テント", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バーベキュー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ハイキング", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ピクニック", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スキー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スケート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バレーボール", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "バスケットボール", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "バドミントン", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "卓球", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "マラソン", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "ラグビー", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "ゴルフ", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "ボウリング", meaning: "からだを うごかしたり ルールを まもって たのしんだりする もの" },
+  { word: "スケートボード", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "サーフィン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ヨガ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "トレーニング", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "チーム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "コーチ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "メダル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "トロフィー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スタジアム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "グラウンド", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ネット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ボール", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ゴール", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "キック", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "シュート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マイク", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スピーカー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カラオケ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "メロディ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "リズム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "コンサート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ステージ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "チケット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アルバム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "メモ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ペン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "シャープペンシル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ボールペン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マーカー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "はさみ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "テープ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ファイル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "クリップ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カード", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パズル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "クイズ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マジック", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ロボット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "コンピューター", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "タブレット", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "キーボード", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "マウス", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "モニター", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "プリンター", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "インターネット", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "メール", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "アプリ", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "プログラム", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "データ", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "スマートフォン", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "イヤホン", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "ヘッドホン", meaning: "じょうほうを あつかったり つたえたりする きかいや しくみ" },
+  { word: "カセット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "レコード", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "CD", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "DVD", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ビデオ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アニメーション", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "キャラクター", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ヒーロー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "モンスター", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ドラゴン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "プリンセス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "宇宙", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "惑星", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スペース", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "シャトル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "エイリアン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "UFO", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カプセル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "エネルギー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "エンジン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "タイヤ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ハンドル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ブレーキ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ペダル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バイク", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "オートバイ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "キックボード", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "モノレール", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ケーブルカー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ゴンドラ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "クルーズ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ボート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カヌー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カヤック", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ブルドーザー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "クレーン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パワーショベル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バックホー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バリケード", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "コーン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ヘルメット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ジャケット", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "セーター", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カーディガン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スカート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ワンピース", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "スーツ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ネクタイ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "シューズ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ソックス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ファスナー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "チャック", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "レインコート", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "レインブーツ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "エプロン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ミトン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "キッチン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ボウル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ザル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "まな板", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "おたま", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "トング", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ピーラー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ミキサー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "トースター", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "オーブン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ケトル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マグカップ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "グラス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ボトル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ランチボックス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ナプキン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ラップ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アルミホイル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パッケージ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ラベル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ソース", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ケチャップ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マヨネーズ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ドレッシング", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ジャム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "はちみつ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ヨーグルト", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アイスクリーム", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "シャーベット", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "ホットケーキ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パンケーキ", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "サンドイッチ", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "ハンバーガー", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "ホットドッグ", meaning: "おやつや ごはんに たべる おいしい たべもの" },
+  { word: "オムライス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ステーキ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ピラフ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "チャーハン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "おにぎり", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カツサンド", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ピーナッツ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アーモンド", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カシューナッツ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "レーズン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "グレープフルーツ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マンゴー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ブロッコリー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "カリフラワー", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アスパラガス", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "セロリ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "パセリ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バジル", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ミント", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ラディッシュ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ズッキーニ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "アボカド", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "オリーブ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "マッシュルーム", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "エリンギ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "しめじ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "なめこ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "とうがらし", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "シナモン", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "バニラ", meaning: "くらしや あそびの なかで つかわれる ものや ことば" },
+  { word: "ココア", meaning: "くらしや あそびの なかで つかわれる ものや ことば" }
+];
+
+const WORD_SEARCH_THEMES = [
+  { theme: "どうぶつ", words: ["ぞう", "きりん", "うさぎ", "らいおん", "ねこ", "いぬ"] },
+  { theme: "たべもの", words: ["りんご", "バナナ", "パン", "トマト", "いちご", "みかん"] },
+  { theme: "のりもの", words: ["バス", "でんしゃ", "ふね", "ひこうき", "タクシー", "トラック"] }
+];
+
+let currentPosition = 0;
+let currentStage = 1;
+let totalPoints = 0;
+let nextSpecialStageMilestone = 500;
+let timer = 120;
+let timerInterval = null;
+let soundEnabled = true;
+
+let isKatakanaMode = false;
+let currentIdioms = [];
+let usedHintsInStage = [false, false, false, false, false];
+let selectedCard = null;
+let audioCtx = null;
+let trackCoords = [];
+
+let draggedCard = null;
+let touchClone = null;
+let touchStartX = 0;
+let touchStartY = 0;
+
+function initTrack() {
+  const container = document.getElementById('game-container');
+  const trackContainer = document.getElementById('track-container');
+  trackContainer.innerHTML = '';
+  trackCoords = [];
+
+  const rect = container.getBoundingClientRect();
+  const containerW = rect.width || 1200;
+  const containerH = rect.height || 675;
+
+  const marginX = 26;
+  const marginY = 26;
+
+  const trackW = containerW - marginX * 2;
+  const trackH = containerH - marginY * 2;
+
+  const totalPerimeter = 2 * (trackW + trackH);
+  const totalTiles = 51;
+  const step = totalPerimeter / totalTiles;
+
+  const xStart = trackW * 0.52;
+
+  for (let i = 0; i < totalTiles; i++) {
+    const dist = i * step;
+    let x, y;
+
+    if (dist <= trackW - xStart) {
+      x = xStart + dist;
+      y = trackH;
+    } else if (dist <= (trackW - xStart) + trackH) {
+      const d = dist - (trackW - xStart);
+      x = trackW;
+      y = trackH - d;
+    } else if (dist <= (trackW - xStart) + trackH + trackW) {
+      const d = dist - ((trackW - xStart) + trackH);
+      x = trackW - d;
+      y = 0;
+    } else if (dist <= (trackW - xStart) + 2 * trackH + trackW) {
+      const d = dist - ((trackW - xStart) + trackH + trackW);
+      x = 0;
+      y = d;
+    } else {
+      const d = dist - ((trackW - xStart) + 2 * trackH + trackW);
+      x = d;
+      y = trackH;
+    }
+
+    const pctX = ((x + marginX) / containerW) * 100;
+    const pctY = ((y + marginY) / containerH) * 100;
+
+    trackCoords.push({ x: pctX, y: pctY });
+
+    const tile = document.createElement('div');
+    tile.className = 'track-tile';
+    tile.id = `tile-${i}`;
+    tile.style.left = `${pctX}%`;
+    tile.style.top = `${pctY}%`;
+
+    if (i === 0) {
+      tile.classList.add('start-tile');
+      tile.innerText = 'START';
+    } else if (i === 50) {
+      tile.classList.add('goal-tile');
+      tile.innerText = 'GOAL';
+    } else {
+      tile.innerText = i;
+    }
+    trackContainer.appendChild(tile);
+  }
+
+  updateTrackUI();
+}
+
+function updateTrackUI() {
+  for (let i = 0; i < 51; i++) {
+    const tile = document.getElementById(`tile-${i}`);
+    if (!tile) continue;
+
+    tile.classList.remove('active-green', 'active-yellow');
+
+    let isGreen = i < currentPosition;
+    let isYellow = (i === currentPosition && i > 0 && i < 50);
+
+    if (isGreen) {
+      tile.classList.add('active-green');
+    } else if (isYellow) {
+      tile.classList.add('active-yellow');
+    }
+  }
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function cleanupTouchState() {
+  if (touchClone) {
+    touchClone.remove();
+    touchClone = null;
+  }
+  if (draggedCard) {
+    draggedCard.style.opacity = '1';
+    draggedCard = null;
+  }
+  document.querySelectorAll('.touch-drag-clone').forEach(el => el.remove());
+}
+
+function startStage() {
+  cleanupTouchState();
+  clearInterval(timerInterval);
+  timer = 120;
+  selectedCard = null;
+  usedHintsInStage = [false, false, false, false, false];
+
+  isKatakanaMode = (currentStage % 2 === 0);
+  document.getElementById('mode-display').innerText = isKatakanaMode ? "【カタカナ】" : "【ひらがな】";
+  document.getElementById('timer-display').innerText = `⏱ ${formatTime(timer)}`;
+  document.getElementById('stage-display').innerText = `🚩 すてーじ ${currentStage}`;
+
+  const db = isKatakanaMode ? KATAKANA_DATABASE : HIRAGANA_DATABASE;
+  currentIdioms = [...db].sort(() => Math.random() - 0.5).slice(0, 5);
+
+  renderProblemRows();
+  renderCards();
+
+  triggerStageZoomIn(`すてーじ ${currentStage}`, () => {
+    timerInterval = setInterval(() => {
+      timer--;
+      document.getElementById('timer-display').innerText = `⏱ ${formatTime(timer)}`;
+      if (timer <= 0) {
+        clearInterval(timerInterval);
+        handleTimeUp();
+      }
+    }, 1000);
+  });
+}
+
+function triggerStageZoomIn(text, onComplete) {
+  const overlay = document.getElementById('stage-zoom-overlay');
+  const zoomText = document.getElementById('stage-zoom-text');
+
+  zoomText.innerText = text;
+  zoomText.classList.remove('animate');
+  overlay.classList.add('show');
+
+  playSE('zoomIn');
+
+  setTimeout(() => {
+    zoomText.classList.add('animate');
+  }, 20);
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    zoomText.classList.remove('animate');
+    if (onComplete) onComplete();
+  }, 1100);
+}
+
+function rollUpPoints(targetPoints, onComplete) {
+  const display = document.getElementById('points-display');
+  display.classList.add('rolling');
+
+  let currentVal = totalPoints;
+  const diff = targetPoints - totalPoints;
+  
+  if (diff <= 0) {
+    display.innerText = `⭐ ${targetPoints} pt`;
+    display.classList.remove('rolling');
+    totalPoints = targetPoints;
+    if (onComplete) onComplete();
+    return;
+  }
+
+  const steps = Math.min(30, diff);
+  const increment = diff / steps;
+  let stepCount = 0;
+
+  const interval = setInterval(() => {
+    stepCount++;
+    currentVal += increment;
+    const roundVal = Math.round(currentVal);
+    display.innerText = `⭐ ${roundVal} pt`;
+    playSE('rollup');
+
+    if (stepCount >= steps) {
+      clearInterval(interval);
+      totalPoints = targetPoints;
+      display.innerText = `⭐ ${totalPoints} pt`;
+      display.classList.remove('rolling');
+      if (onComplete) onComplete();
+    }
+  }, 35);
+}
+
+function renderProblemRows() {
+  const list = document.getElementById('idiom-list');
+  list.innerHTML = '';
+
+  currentIdioms.forEach((item, rowIndex) => {
+    const row = document.createElement('div');
+    row.className = 'idiom-row';
+
+    const meaning = document.createElement('div');
+    meaning.className = 'meaning-text';
+    meaning.innerText = item.meaning;
+
+    const slotsContainer = document.createElement('div');
+    slotsContainer.className = 'slots-container';
+
+    for (let c = 0; c < item.word.length; c++) {
+      const slot = document.createElement('div');
+      slot.className = 'drop-slot';
+      slot.dataset.rowIndex = rowIndex;
+      slot.dataset.slotIndex = c;
+      slot.ondragover = allowDrop;
+      slot.ondrop = dropToSlot;
+      slot.onclick = () => handleSlotClick(slot);
+      slotsContainer.appendChild(slot);
+    }
+
+    const hintBtn = document.createElement('button');
+    hintBtn.className = 'hint-btn';
+    hintBtn.innerText = 'ヒント';
+    hintBtn.onclick = (e) => {
+      e.stopPropagation();
+      showRowHint(rowIndex, hintBtn);
+    };
+
+    row.appendChild(meaning);
+    row.appendChild(slotsContainer);
+    row.appendChild(hintBtn);
+    list.appendChild(row);
+  });
+}
+
+function showRowHint(rowIndex, btn) {
+  if (usedHintsInStage[rowIndex]) return;
+  usedHintsInStage[rowIndex] = true;
+  btn.classList.add('used');
+  btn.innerText = 'ヒント済';
+  btn.disabled = true;
+
+  const targetIdiom = currentIdioms[rowIndex];
+  const firstSlot = document.querySelector(`.drop-slot[data-row-index="${rowIndex}"][data-slot-index="0"]`);
+  
+  if (firstSlot && !firstSlot.querySelector('.hint-text')) {
+    const hintSpan = document.createElement('span');
+    hintSpan.className = 'hint-text';
+    hintSpan.innerText = targetIdiom.word[0];
+    firstSlot.appendChild(hintSpan);
+  }
+
+  playSE('click');
+}
+
+function returnCardToPool(card) {
+  if (!card) return;
+  const originalSlot = document.getElementById(card.dataset.poolSlotId);
+  if (originalSlot) {
+    originalSlot.appendChild(card);
+  } else {
+    document.getElementById('card-pool').appendChild(card);
+  }
+}
+
+function renderCards() {
+  cleanupTouchState();
+  const pool = document.getElementById('card-pool');
+  pool.innerHTML = '';
+
+  let allChars = [];
+  currentIdioms.forEach(item => {
+    item.word.split('').forEach(char => allChars.push(char));
+  });
+  allChars.sort(() => Math.random() - 0.5);
+
+  allChars.forEach((char, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'pool-slot';
+    slot.id = `pool-slot-${i}`;
+
+    const card = document.createElement('div');
+    card.className = 'kanji-card';
+    card.innerText = char;
+    card.id = `card-${i}`;
+    card.dataset.poolSlotId = `pool-slot-${i}`;
+    card.draggable = true;
+
+    card.ondragstart = (e) => {
+      e.dataTransfer.setData('text', e.target.id);
+      selectCard(card);
+      playSE('click');
+    };
+
+    card.onclick = (e) => {
+      e.stopPropagation();
+      if (card.classList.contains('correct')) return;
+      selectCard(card);
+      playSE('click');
+    };
+
+    addTouchEvents(card);
+
+    slot.appendChild(card);
+    pool.appendChild(slot);
+  });
+}
+
+function addTouchEvents(card) {
+  const onTouchStart = (e) => {
+    if (card.classList.contains('correct')) return;
+    if (e.touches.length > 1) {
+      e.preventDefault();
+      cleanupTouchState();
+      return;
+    }
+    e.preventDefault();
+
+    cleanupTouchState();
+
+    const touch = e.touches[0];
+    draggedCard = card;
+    selectCard(card);
+    playSE('click');
+
+    const rect = card.getBoundingClientRect();
+    touchClone = card.cloneNode(true);
+    touchClone.classList.add('touch-drag-clone');
+    touchClone.style.position = 'fixed';
+    touchClone.style.left = `${rect.left}px`;
+    touchClone.style.top = `${rect.top}px`;
+    touchClone.style.width = `${rect.width}px`;
+    touchClone.style.height = `${rect.height}px`;
+    touchClone.style.zIndex = '1000';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+    touchClone.style.transform = 'scale(1.1)';
+    document.body.appendChild(touchClone);
+
+    touchStartX = touch.clientX - rect.left;
+    touchStartY = touch.clientY - rect.top;
+    card.style.opacity = '0.3';
+  };
+
+  const onTouchMove = (e) => {
+    if (!draggedCard || !touchClone) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchClone.style.left = `${touch.clientX - touchStartX}px`;
+    touchClone.style.top = `${touch.clientY - touchStartY}px`;
+  };
+
+  const onTouchEnd = (e) => {
+    if (!draggedCard) return;
+    const touch = e.changedTouches[0];
+    const currentCard = draggedCard;
+
+    cleanupTouchState();
+
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (dropTarget) {
+      const slot = dropTarget.closest('.drop-slot');
+      const pool = dropTarget.closest('#card-pool-container, #card-pool');
+
+      if (slot) {
+        handleSlotDrop(currentCard, slot);
+      } else if (pool) {
+        returnCardToPool(currentCard);
+        document.querySelectorAll('.drop-slot').forEach(s => {
+          if (!s.querySelector('.kanji-card')) s.classList.remove('filled');
+        });
+        selectCard(null);
+      }
+    }
+  };
+
+  const onTouchCancel = () => {
+    cleanupTouchState();
+  };
+
+  card.addEventListener('touchstart', onTouchStart, { passive: false });
+  card.addEventListener('touchmove', onTouchMove, { passive: false });
+  card.addEventListener('touchend', onTouchEnd);
+  card.addEventListener('touchcancel', onTouchCancel);
+}
+
+function handleSlotDrop(card, slot) {
+  const existingCard = slot.querySelector('.kanji-card');
+  if (existingCard && existingCard !== card) {
+    if (!existingCard.classList.contains('correct')) {
+      returnCardToPool(existingCard);
+    } else {
+      return;
+    }
+  }
+  slot.appendChild(card);
+  slot.classList.add('filled');
+  selectCard(null);
+  playSE('click');
+  checkRowCompletion(slot.dataset.rowIndex);
+}
+
+function selectCard(card) {
+  if (selectedCard) {
+    selectedCard.classList.remove('selected');
+  }
+  if (selectedCard === card) {
+    selectedCard = null;
+    return;
+  }
+  selectedCard = card;
+  if (card) {
+    card.classList.add('selected');
+  }
+}
+
+function handleSlotClick(slot) {
+  const existingCard = slot.querySelector('.kanji-card');
+  if (existingCard) {
+    if (!existingCard.classList.contains('correct')) {
+      returnCardToPool(existingCard);
+      slot.classList.remove('filled');
+      playSE('click');
+      if (selectedCard === existingCard) selectCard(null);
+    }
+  } else if (selectedCard) {
+    handleSlotDrop(selectedCard, slot);
+  }
+}
+
+function allowDrop(e) { e.preventDefault(); }
+
+function dropToSlot(e) {
+  e.preventDefault();
+  const cardId = e.dataTransfer.getData('text');
+  const card = document.getElementById(cardId);
+  const targetSlot = e.currentTarget;
+
+  if (!card) return;
+  handleSlotDrop(card, targetSlot);
+}
+
+function dropToPool(e) {
+  e.preventDefault();
+  const cardId = e.dataTransfer.getData('text');
+  const card = document.getElementById(cardId);
+  if (card) {
+    returnCardToPool(card);
+    document.querySelectorAll('.drop-slot').forEach(slot => {
+      if (!slot.querySelector('.kanji-card')) slot.classList.remove('filled');
+    });
+    selectCard(null);
+  }
+}
+
+function checkRowCompletion(rowIndex) {
+  const targetIdiom = currentIdioms[rowIndex];
+  const slots = document.querySelectorAll(`.drop-slot[data-row-index="${rowIndex}"]`);
+  let placedChars = '';
+
+  slots.forEach(slot => {
+    const card = slot.querySelector('.kanji-card');
+    if (card) {
+      placedChars += card.innerText;
+    }
+  });
+
+  if (placedChars.length === targetIdiom.word.length) {
+    if (placedChars === targetIdiom.word) {
+      playSE('correct');
+      slots.forEach(slot => {
+        const card = slot.querySelector('.kanji-card');
+        if (card) {
+          card.ondragstart = null;
+          card.onclick = null;
+          card.classList.remove('selected');
+          card.classList.add('correct');
+        }
+      });
+
+      const tilesToAdvance = usedHintsInStage[rowIndex] ? 1 : 2;
+      advancePosition(tilesToAdvance);
+      checkAllCompleted();
+    } else {
+      playSE('wrong');
+      setTimeout(() => {
+        slots.forEach(slot => {
+          const card = slot.querySelector('.kanji-card');
+          if (card && !card.classList.contains('correct')) {
+            returnCardToPool(card);
+            slot.classList.remove('filled');
+          }
+        });
+        penalizePosition(2);
+      }, 350);
+    }
+  }
+}
+
+function checkAllCompleted() {
+  const allRows = document.querySelectorAll('.idiom-row');
+  let completedCount = 0;
+  allRows.forEach(row => {
+    const slots = row.querySelectorAll('.drop-slot');
+    const isCorrect = Array.from(slots).every(s => {
+      const card = s.querySelector('.kanji-card');
+      return card && card.classList.contains('correct');
+    });
+    if (isCorrect) completedCount++;
+  });
+
+  if (completedCount === 5) {
+    playSE('milestone');
+    triggerConfetti();
+    
+    const remainingSec = Math.max(0, timer);
+    const stageGainedPoints = 50 + remainingSec;
+    const targetPoints = totalPoints + stageGainedPoints;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="stage-clear-banner">
+        <h2>🎉 5問ぜんぶクリア！</h2>
+        <p style="margin-bottom: 4px;">⭐ クリア 50pt ＋ のこり${remainingSec}びょう (${remainingSec}pt) ＝ <strong>＋${stageGainedPoints}pt</strong> ゲット！</p>
+      </div>
+    `;
+    document.getElementById('game-container').appendChild(modal);
+
+    setTimeout(() => {
+      modal.remove();
+      currentStage++;
+      
+      rollUpPoints(targetPoints, () => {
+        checkSpecialStageOrNext();
+      });
+    }, 1800);
+  }
+}
+
+function checkSpecialStageOrNext() {
+  if (totalPoints >= nextSpecialStageMilestone) {
+    nextSpecialStageMilestone += 500;
+    startSpecialStage();
+  } else {
+    startStage();
+  }
+}
+
+async function advancePosition(count) {
+  for (let step = 0; step < count; step++) {
+    if (currentPosition >= 50) break;
+
+    const prevTile = document.getElementById(`tile-${currentPosition}`);
+    if (prevTile && currentPosition > 0) {
+      prevTile.classList.remove('active-yellow');
+      prevTile.classList.add('active-green');
+    }
+
+    currentPosition++;
+
+    const currTile = document.getElementById(`tile-${currentPosition}`);
+    if (currTile) {
+      if (currentPosition < 50) {
+        currTile.classList.add('active-yellow');
+      } else {
+        currTile.classList.add('active-green');
+      }
+      currTile.classList.remove('tile-pop');
+      void currTile.offsetWidth;
+      currTile.classList.add('tile-pop');
+    }
+
+    playSE('click');
+    await new Promise(resolve => setTimeout(resolve, 380));
+  }
+
+  updateTrackUI();
+
+  if (currentPosition >= 50) {
+    currentPosition = 50;
+    clearInterval(timerInterval);
+    
+    triggerGoalOrbitAnimation(() => {
+      showGoalBonusBanner(() => {
+        showGoalModal();
+      });
+    });
+  }
+}
+
+async function penalizePosition(count) {
+  for (let step = 0; step < count; step++) {
+    if (currentPosition <= 0) break;
+
+    const currTile = document.getElementById(`tile-${currentPosition}`);
+    if (currTile) {
+      currTile.classList.remove('active-yellow', 'active-green', 'tile-pop');
+    }
+
+    currentPosition--;
+
+    const prevTile = document.getElementById(`tile-${currentPosition}`);
+    if (prevTile && currentPosition > 0) {
+      prevTile.classList.remove('active-green');
+      prevTile.classList.add('active-yellow');
+      prevTile.classList.remove('tile-pop');
+      void prevTile.offsetWidth;
+      prevTile.classList.add('tile-pop');
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+
+  updateTrackUI();
+}
+
+function showGoalBonusBanner(onComplete) {
+  playSE('fanfare');
+  triggerConfetti();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="bonus-banner">
+      <h2>🎁 かんそうボーナス！</h2>
+      <p style="font-size: 16px; color: #fef3c7;">50マス 1しゅう たっせい！</p>
+      <div class="bonus-amount">+100 BONUS PT</div>
+    </div>
+  `;
+  document.getElementById('game-container').appendChild(modal);
+
+  const targetPoints = totalPoints + 100;
+
+  setTimeout(() => {
+    rollUpPoints(targetPoints, () => {
+      setTimeout(() => {
+        modal.remove();
+        if (onComplete) onComplete();
+      }, 500);
+    });
+  }, 1000);
+}
+
+function triggerGoalOrbitAnimation(onComplete) {
+  playSE('goal');
+  triggerConfetti();
+
+  let lapCount = 0;
+  let currentIndex = 0;
+  const totalTiles = 51;
+
+  const orbitInterval = setInterval(() => {
+    document.querySelectorAll('.track-tile').forEach(t => t.classList.remove('active-orbit'));
+
+    const tile = document.getElementById(`tile-${currentIndex}`);
+    if (tile) {
+      tile.classList.add('active-orbit');
+      playSE('orbit');
+    }
+
+    currentIndex++;
+    if (currentIndex >= totalTiles) {
+      currentIndex = 0;
+      lapCount++;
+    }
+
+    if (lapCount >= 2) {
+      clearInterval(orbitInterval);
+      document.querySelectorAll('.track-tile').forEach(t => t.classList.remove('active-orbit'));
+      if (onComplete) onComplete();
+    }
+  }, 30);
+}
+
+function showGoalModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-card">
+      <h2 class="win">🏆 ゴールたっせい！</h2>
+      <p>おめでとう！50マス かんそう！<br>いまの ポイント: <strong>${totalPoints} pt</strong></p>
+      <div class="modal-btns">
+        <button class="btn btn-next" onclick="nextStageFromGoal(this)">つぎの すてーじへ</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('game-container').appendChild(modal);
+}
+
+function nextStageFromGoal(btn) {
+  cleanupTouchState();
+  btn.closest('.modal-overlay').remove();
+  currentPosition = 0;
+  updateTrackUI();
+  checkSpecialStageOrNext();
+}
+
+/* 特別ボーナスステージの60秒タイマー */
+function startSpecialCountdown(modal, getProgress) {
+  const container = modal.querySelector('.special-stage-container');
+  const timerLabel = document.createElement('div');
+  timerLabel.style.cssText = 'font-size:18px;font-weight:900;color:#dc2626;background:#fff;border:2px solid #fecaca;border-radius:12px;padding:6px 16px;';
+  timerLabel.textContent = '⏱ のこり 1:00';
+  container.insertBefore(timerLabel, container.querySelector('.special-grid-8x8, .gojyuon-container'));
+  let remaining = 60;
+  modal._specialTimer = setInterval(() => {
+    remaining--;
+    timerLabel.textContent = `⏱ のこり ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
+    if (remaining <= 0) {
+      clearInterval(modal._specialTimer);
+      const earned = Math.max(0, getProgress()) * 10;
+      modal.remove();
+      const result = document.createElement('div');
+      result.className = 'modal-overlay';
+      result.innerHTML = `<div class="modal-card"><h2 class="win">⏱ タイムアップ！</h2><p>とくべつボーナスステージ おしまい！</p><p style="font-size:24px;font-weight:900;margin:16px 0;">⭐ ${earned} pt ゲット！</p><p>もとのゲームにもどります。</p></div>`;
+      document.getElementById('game-container').appendChild(result);
+      rollUpPoints(totalPoints + earned, () => {
+        setTimeout(() => { result.remove(); startStage(); }, 1200);
+      });
+    }
+  }, 1000);
+}
+
+/* 特別ボーナスステージ */
+function startSpecialStage() {
+  cleanupTouchState();
+  const isTypeWordSearch = Math.random() < 0.5;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+
+  if (isTypeWordSearch) {
+    const themeObj = WORD_SEARCH_THEMES[Math.floor(Math.random() * WORD_SEARCH_THEMES.length)];
+    modal.innerHTML = `
+      <div class="special-stage-container">
+        <div class="special-header">
+          <div class="special-title">⭐ とくべつ もじさがし ⭐</div>
+          <div>テーマ：【 ${themeObj.theme} 】</div>
+        </div>
+        <p style="font-size: 14px; color: #713f12;">パネルから ことばの もじを タップしよう！</p>
+        <div class="special-grid-8x8" id="special-grid"></div>
+      </div>
+    `;
+    document.getElementById('game-container').appendChild(modal);
+
+    const grid = modal.querySelector('#special-grid');
+    let targetChars = themeObj.words.join('').split('');
+    let dummyChars = ["あ","い","う","え","お","か","き","く","け","こ","さ","し","す","せ","そ"].slice(0, 64 - targetChars.length);
+    let allPanels = [...targetChars.map(c => ({ char: c, target: true })), ...dummyChars.map(c => ({ char: c, target: false }))].sort(() => Math.random() - 0.5);
+
+    let found = 0;
+    startSpecialCountdown(modal, () => found);
+    playSE('fanfare');
+
+    allPanels.forEach(p => {
+      const btn = document.createElement('div');
+      btn.className = 'special-panel';
+      btn.innerText = p.char;
+      btn.onclick = () => {
+        if (btn.classList.contains('hit') || btn.classList.contains('miss')) return;
+        if (p.target) {
+          btn.classList.add('hit');
+          playSE('correct');
+          found++;
+          if (found >= targetChars.length) {
+            clearInterval(modal._specialTimer);
+            playSE('milestone');
+            triggerConfetti();
+            const targetP = totalPoints + 150;
+            setTimeout(() => {
+              modal.remove();
+              rollUpPoints(targetP, () => {
+                startStage();
+              });
+            }, 1500);
+          }
+        } else {
+          btn.classList.add('miss');
+          playSE('wrong');
+          setTimeout(() => btn.classList.remove('miss'), 300);
+        }
+      };
+      grid.appendChild(btn);
+    });
+  } else {
+    /* 50音順タップゲーム */
+    const targetSeq = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ"];
+    let shuffled = [...targetSeq].sort(() => Math.random() - 0.5);
+    let currentIndex = 0;
+
+    modal.innerHTML = `
+      <div class="special-stage-container">
+        <div class="special-header">
+          <div class="special-title">⭐ ５０おんじゅん タップ ⭐</div>
+        </div>
+        <p style="font-size: 16px; color: #713f12; font-weight: bold; margin-top: 6px;">「あ」から じゅんばんに タップしよう！</p>
+        <div class="gojyuon-container" id="gojyuon-box"></div>
+      </div>
+    `;
+    document.getElementById('game-container').appendChild(modal);
+    const box = modal.querySelector('#gojyuon-box');
+    startSpecialCountdown(modal, () => currentIndex);
+
+    playSE('fanfare');
+
+    shuffled.forEach(char => {
+      const card = document.createElement('div');
+      card.className = 'gojyuon-card';
+      card.innerText = char;
+      card.onclick = () => {
+        if (card.classList.contains('cleared')) return;
+        if (char === targetSeq[currentIndex]) {
+          card.classList.add('cleared');
+          playSE('correct');
+          currentIndex++;
+          if (currentIndex >= targetSeq.length) {
+            clearInterval(modal._specialTimer);
+            playSE('milestone');
+            triggerConfetti();
+            const targetP = totalPoints + 150;
+            setTimeout(() => {
+              modal.remove();
+              rollUpPoints(targetP, () => {
+                startStage();
+              });
+            }, 1500);
+          }
+        } else {
+          playSE('wrong');
+        }
+      };
+      box.appendChild(card);
+    });
+  }
+}
+
+function handleTimeUp() {
+  playSE('timeup');
+  penalizePosition(5);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-card">
+      <h2>⏰ タイムアップ！</h2>
+      <p>じかんが きれました！マスが 5つ もどります。</p>
+      <div class="modal-btns">
+        <button class="btn btn-retry" onclick="retryStage(this)">もういちど ちょうせん</button>
+        <button class="btn btn-quit" onclick="resetGame(this)">さいしょから</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('game-container').appendChild(modal);
+}
+
+function retryStage(btn) {
+  cleanupTouchState();
+  btn.closest('.modal-overlay').remove();
+  startStage();
+}
+
+function resetGame(btn) {
+  cleanupTouchState();
+  btn.closest('.modal-overlay').remove();
+  currentPosition = 0;
+  currentStage = 1;
+  totalPoints = 0;
+  nextSpecialStageMilestone = 500;
+  updateTrackUI();
+  showStartModal();
+}
+
+function showStartModal() {
+  cleanupTouchState();
+  const existingModal = document.getElementById('start-modal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'start-modal';
+  modal.innerHTML = `
+    <div class="start-hero-card">
+      <h1 class="start-hero-title">ことばパズル１ねん</h1>
+      <p style="font-size: 15px; margin-bottom: 20px; line-height: 1.6;">
+        ひらがな と カタカナ の カードを えらんで<br>
+        いみにあう ことばを かんせいさせよう！<br>
+        50マスの ゴールを めざそう！
+      </p>
+      <button class="start-play-btn" onclick="startGameFromModal(this)">ゲーム スタート</button>
+    </div>
+  `;
+  document.getElementById('game-container').appendChild(modal);
+}
+
+function startGameFromModal(btn) {
+  initAudio();
+  const modal = btn.closest('.modal-overlay');
+  if (modal) modal.remove();
+  startStage();
+}
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('sound-btn');
+  if (btn) {
+    btn.innerText = soundEnabled ? '🔊 ON' : '🔇 OFF';
+  }
+}
+
+/* 2年生版と同等の完全な効果音生成ロジック */
+function playSE(type) {
+  if (!soundEnabled) return;
+  initAudio();
+  if (!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+
+  try {
+    if (type === 'click') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'correct') {
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.2);
+      });
+    } else if (type === 'wrong') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'zoomIn') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.3);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'rollup') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800 + Math.random() * 200, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.03);
+    } else if (type === 'milestone' || type === 'fanfare') {
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.1);
+        osc.stop(now + idx * 0.1 + 0.4);
+      });
+    } else if (type === 'orbit' || type === 'goal') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400 + Math.random() * 600, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'timeup') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(250, now);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.5);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    }
+  } catch (e) {
+    // Web Audio エラーの自動無効化
+  }
+}
+
+function triggerConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+
+  const particles = [];
+  const colors = ['#f43f5e', '#38bdf8', '#a855f7', '#4ade80', '#facc15', '#fb923c'];
+
+  for (let i = 0; i < 70; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.7) * 14,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4,
+      rotation: Math.random() * 360,
+      rSpeed: (Math.random() - 0.5) * 10
+    });
+  }
+
+  let duration = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.25;
+      p.rotation += p.rSpeed;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+    });
+
+    duration++;
+    if (duration < 90) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  animate();
+}
+
+window.addEventListener('load', () => {
+  initTrack();
+  showStartModal();
+});
+
+window.addEventListener('resize', () => {
+  initTrack();
+});
+</script>
+</body>
+</html>
