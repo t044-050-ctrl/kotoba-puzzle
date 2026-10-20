@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ことばパズル</title>
- <meta property="og:title" content="【１年国語】ことばパズル">
-    <meta property="og:description" content="文字カード（ひらがな/かたかな）を組み合わせて、意味に合う言葉をつくるゲームです。">
-    <meta property="og:type" content="website">
+<title>ことばパズル１ねん</title>
 <style>
   * { 
     box-sizing: border-box; 
@@ -1361,7 +1358,7 @@ let currentPosition = 0;
 let currentStage = 1;
 let totalPoints = 0;
 let nextSpecialStageMilestone = 500;
-let timer = 120;
+let timer = 180;
 let timerInterval = null;
 let soundEnabled = true;
 
@@ -1489,7 +1486,7 @@ function cleanupTouchState() {
 function startStage() {
   cleanupTouchState();
   clearInterval(timerInterval);
-  timer = 120;
+  timer = 180;
   selectedCard = null;
   usedHintsInStage = [false, false, false, false, false];
 
