@@ -840,7 +840,6 @@ const HIRAGANA_DATABASE = [
   { word: "まくら", meaning: "ねるときに あたまを のせる もの" },
   { word: "ふとん", meaning: "ねるときに からだに かけたり しく もの" },
   { word: "せっけん", meaning: "てや からだを あらう あわのでる もの" },
-  { word: "たおる", meaning: "からだや ての みずを ふく ぬの" },
   { word: "ぞうきん", meaning: "ゆかや つくえを ふく そうじの どうぐ" },
   { word: "ほうき", meaning: "ごみを はいて あつめる そうじの どうぐ" },
   { word: "ちりとり", meaning: "ほうきで あつめた ごみを いれる そうじの どうぐ" },
@@ -1031,6 +1030,7 @@ const KATAKANA_DATABASE = [
   { word: "クレヨン", meaning: "カラフルな いろで えを ぬる ぶんぼうぐ" },
   { word: "バッグ", meaning: "ものを いれて てで もったり かたに かける ふくろ" },
   { word: "キャップ", meaning: "つばが まえについた スポーツようの ぼうし" },
+  { word: "タオル", meaning: "からだや ての みずを ふく ぬの" },
   { word: "シャツ", meaning: "からだの うえに きる うすい ふく" },
   { word: "ズボン", meaning: "あしを いれて はく ふく" },
   { word: "コート", meaning: "ふゆの さむい ひに うえから はおる あたたかい ふく" },
@@ -1596,7 +1596,7 @@ function showRowHint(rowIndex, btn) {
   if (usedHintsInStage[rowIndex]) return;
   usedHintsInStage[rowIndex] = true;
   btn.classList.add('used');
-  btn.innerText = 'ヒント済';
+  btn.innerText = 'ヒント☑';
   btn.disabled = true;
 
   const targetIdiom = currentIdioms[rowIndex];
@@ -2044,7 +2044,7 @@ function showGoalModal() {
       <h2 class="win">🏆 ゴールたっせい！</h2>
       <p>おめでとう！50マス かんそう！<br>いまの ポイント: <strong>${totalPoints} pt</strong></p>
       <div class="modal-btns">
-        <button class="btn btn-next" onclick="nextStageFromGoal(this)">つぎの すてーじへ</button>
+        <button class="btn btn-next" onclick="nextStageFromGoal(this)">つぎの ステージへ</button>
       </div>
     </div>
   `;
