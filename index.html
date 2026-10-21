@@ -583,7 +583,7 @@
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
-/* ひらがな 200語 データベース */
+/* ひらがな データベース（ひらがな・カタカナ・数字のみ） */
 const HIRAGANA_DATABASE = [
   { word: "いぬ", meaning: "ワンワンと なき ひととなかよしに なる どうぶつ" },
   { word: "ねこ", meaning: "ニャーニャーと なき からだが やわらかい どうぶつ" },
@@ -635,7 +635,7 @@ const HIRAGANA_DATABASE = [
   { word: "れもん", meaning: "すっぱくて きいろい くだもの" },
   { word: "おにぎり", meaning: "ごはんを ぎゅっと にぎって のりを まいた たべもの" },
   { word: "あめ", meaning: "おくちの なかで なめる あまい おかし" },
-  { word: "もち", meaning: "びよーんと のびる お正月に たべる しろい たべもの" },
+  { word: "もち", meaning: "びよーんと のびる おしょうがつに たべる しろい たべもの" },
   { word: "うどん", meaning: "しろくて ながい つるつる たべる めん" },
   { word: "みず", meaning: "のむと のどが うるおう とうめいな のみもの" },
   { word: "おちゃ", meaning: "みどりいろや ちゃいろで すいとうに いれる のみもの" },
@@ -643,7 +643,7 @@ const HIRAGANA_DATABASE = [
   { word: "くも", meaning: "そらに ぽっかり うかんでいる しろい もの" },
   { word: "あめ", meaning: "そらから ぽつぽつ おちてくる みずの つぶ" },
   { word: "ゆき", meaning: "ふゆに そらから ふってくる しろくて つめたい もの" },
-  { word: "かぜ", meaning: "ふくと きの はっぱが ゆれる めに見えない ちから" },
+  { word: "かぜ", meaning: "ふくと きの はっぱが ゆれる めに みえない ちから" },
   { word: "にじ", meaning: "あめあがりに そらに でる ななつの いろの はし" },
   { word: "つき", meaning: "よるの そらに まるく かがやく きいろい ほし" },
   { word: "ほし", meaning: "よるの そらに キラキラ ひかる ちいさな ひかり" },
@@ -673,9 +673,9 @@ const HIRAGANA_DATABASE = [
   { word: "はさみ", meaning: "チョキチョキと かみを きる どうぐ" },
   { word: "のり", meaning: "かみと かみを ぺたっと はりあわせる どうぐ" },
   { word: "とけい", meaning: "じかんを おしえてくれる どうぐ" },
-  { word: "でんしゃ", meaning: "せんろの 上を たくさんの ひとを のせて はしる のりもの" },
+  { word: "でんしゃ", meaning: "せんろの うえを たくさんの ひとを のせて はしる のりもの" },
   { word: "ひこうき", meaning: "そらを たかく とんで とおくへ いく のりもの" },
-  { word: "ふね", meaning: "うみや かわの 上を すいすい すすむ のりもの" },
+  { word: "ふね", meaning: "うみや かわの うえを すいすい すすむ のりもの" },
   { word: "じどうしゃ", meaning: "ブーブーと どうろを はしる のりもの" },
   { word: "ぶらんこ", meaning: "こうえんに ある ゆらゆら ゆれる ゆうぐ" },
   { word: "すべりだい", meaning: "たかい ところから しゅーっと すべりおりる ゆうぐ" },
@@ -694,7 +694,7 @@ const HIRAGANA_DATABASE = [
   { word: "ひる", meaning: "たいようが いちばん たかく ごはんを たべる じかん" },
   { word: "よる", meaning: "くらくなって ほしが でて ねる じかん" },
   { word: "きょう", meaning: "いま すごしている この いちにち" },
-  { word: "あした", meaning: "きょうの つぎに やっんでくる ひ" },
+  { word: "あした", meaning: "きょうの つぎに やっでくる ひ" },
   { word: "きのう", meaning: "きょうの ひとつ まえの ひ" },
   { word: "はる", meaning: "さくらが さいて あたたかくなる きせつ" },
   { word: "なつ", meaning: "たいようが ギラギラして あつくなる きせつ" },
@@ -748,7 +748,7 @@ const HIRAGANA_DATABASE = [
   { word: "かみ", meaning: "えんぴつで もじや えを かく うすい もの" },
   { word: "き", meaning: "はっぱや えだが ある たかい しょくぶつ" },
   { word: "きょうしつ", meaning: "がっこうで べんきょうを する へや" },
-  { word: "くに", meaning: "わたしたちが くらしている 日本などの ばしょ" },
+  { word: "くに", meaning: "わたしたちが くらしている にほんなどの ばしょ" },
   { word: "けむり", meaning: "ひを もやすと そらに のぼっていく しろい くも" },
   { word: "こえ", meaning: "ひとや どうぶつが くちから だす おと" },
   { word: "こおり", meaning: "みずが つめたくなって かたくなった もの" },
@@ -765,7 +765,7 @@ const HIRAGANA_DATABASE = [
   { word: "つの", meaning: "しかや うしの あたまに はえている かたい もの" },
   { word: "なみ", meaning: "うみの みずが ゆらゆらと おしよせてくる もの" },
   { word: "にわ", meaning: "いえの そとに ある はなや きが ある ひろば" },
-  { word: "ね", meaning: "しょくぶつの つちの 下に のびている ぶぶん" },
+  { word: "ね", meaning: "しょくぶつの つちの したに のびている ぶぶん" },
   { word: "のはら", meaning: "くさが たくさん はえている ひろい ばしょ" },
   { word: "はっぱ", meaning: "きや くさに はえている みどりいろの ひらたい ぶぶん" },
   { word: "ひろば", meaning: "みんなが あつまれる ひろい ばしょ" },
@@ -779,7 +779,7 @@ const HIRAGANA_DATABASE = [
   { word: "め", meaning: "しょくぶつの たねから さいしょに でてくる みどりいろの もの" },
   { word: "もり", meaning: "きが たくさん はえている ひろい ばしょ" },
   { word: "やまみち", meaning: "やまの なかに ある くねくねした みち" },
-  { word: "ゆか", meaning: "へやの なかで あしで たつ いちばん 下の ぶぶん" },
+  { word: "ゆか", meaning: "へやの なかで あしで たつ いちばん したの ぶぶん" },
   { word: "よぞら", meaning: "よるの くらくなった そら" },
   { word: "らくだ", meaning: "せなかに こぶがある どうぶつ" },
   { word: "しまうま", meaning: "からだに しまもようがある どうぶつ" },
@@ -973,10 +973,9 @@ const HIRAGANA_DATABASE = [
   { word: "めがね", meaning: "めが よく みえるように つける どうぐ" },
   { word: "ゆびわ", meaning: "ゆびにはめる きれいな かざり" },
   { word: "さかなや", meaning: "さかなを うっている おみせ" }
-
 ];
 
-/* カタカナ 200語 データベース */
+/* カタカナ データベース（ひらがな・カタカナ・数字のみ） */
 const KATAKANA_DATABASE = [
   { word: "パン", meaning: "こむぎこから つくる ふっくらした たべもの" },
   { word: "バナナ", meaning: "きいろくて かわを むいて たべる ながい くだもの" },
@@ -1119,7 +1118,7 @@ const KATAKANA_DATABASE = [
   { word: "ポップコーン", meaning: "トウモロコシから つくる パチパチはじける おかし" },
   { word: "ポテトチップス", meaning: "じゃがいもを うすく あげた パリパリの おかし" },
   { word: "マシュマロ", meaning: "ふわふわして あまい しろい おかし" },
-  { word: "ガム", meaning: "クチャクチャ かんで あじを楽しむ おかし" },
+  { word: "ガム", meaning: "クチャクチャ かんで あじを たのしむ おかし" },
   { word: "クレープ", meaning: "うすい きじに フルーツや クリームを まいた おかし" },
   { word: "パフェ", meaning: "フルーツや アイスが たくさん のった ごちそう" },
   { word: "ワッフル", meaning: "あみめの もようがついた やいた あまい おかし" },
@@ -1256,7 +1255,7 @@ const KATAKANA_DATABASE = [
   { word: "ボトル", meaning: "のみものなどを いれて もちあるく いれもの" },
   { word: "ナプキン", meaning: "たべるときに くちや てを ふく かみや ぬの" },
   { word: "ラップ", meaning: "たべものを おおって かわかないようにする うすい まく" },
-  { word: "アルミホイル", meaning: "りょうりを つつんだり おおったりする うすい きんぞくの かみ" },
+  { word: "アルミホイル", meaning: "りょうりを つつつんだり おおったりする うすい きんぞくの かみ" },
   { word: "パッケージ", meaning: "しょうひんを いれたり つつんだりする もの" },
   { word: "ラベル", meaning: "なまえや せつめいを かいて はる かみ" },
   { word: "ソース", meaning: "りょうりに かけて あじを つける ちょうみりょう" },
@@ -1300,7 +1299,7 @@ const KATAKANA_DATABASE = [
   { word: "バニラ", meaning: "あまい かおりがして おかしなどに つかう もの" },
   { word: "ココア", meaning: "カカオまめから つくる あまくて あたたかい のみもの" }
 ];
-
+ 
 const WORD_SEARCH_THEMES = [
   { theme: "どうぶつ", words: ["ぞう", "きりん", "うさぎ", "らいおん", "ねこ", "いぬ"] },
   { theme: "たべもの", words: ["りんご", "バナナ", "パン", "トマト", "いちご", "みかん"] },
