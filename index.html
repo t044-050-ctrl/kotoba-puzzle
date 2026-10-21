@@ -565,7 +565,7 @@
         <div class="stat-box" id="mode-display">【ひらがな】</div>
         <div class="stat-box" id="points-display">⭐ 0 pt</div>
       </div>
-      <div class="stat-box" id="timer-display">⏱ 2:00</div>
+      <div class="stat-box" id="timer-display">⏱ 4:00</div>
       <button class="sound-btn" id="sound-btn" onclick="toggleSound()">🔊 ON</button>
     </div>
 
@@ -1123,7 +1123,7 @@ let currentStage = 1;
 let totalPoints = 0;
 let nextSpecialStageMilestone = 500;
 let goalSequenceActive = false; // 完走演出・ゴール画面中は特別ボーナスを待機させる
-let timer = 180;
+let timer = 240;
 let timerInterval = null;
 let soundEnabled = true;
 
@@ -1254,7 +1254,7 @@ function cleanupTouchState() {
 function startStage() {
   cleanupTouchState();
   clearInterval(timerInterval);
-  timer = 180;
+  timer = 240;
   selectedCard = null;
   usedHintsInStage = [false, false, false, false, false];
 
